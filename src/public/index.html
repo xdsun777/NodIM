@@ -1,11 +1,18 @@
 <!doctype html>
-<html>
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vue</title>
+    <title>Vue 微内核应用</title>
+    <!-- 提前引入全局样式（如 Tailwind），提升加载体验 -->
+    <style>
+      /* 基础重置（极简版，避免与 App.vue 重复） */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { height: 100%; font-family: system-ui, -apple-system, sans-serif; }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <!-- 语义化挂载容器：无 ID，仅用类名标识 -->
+    <main class="app-mount-point"></main>
   </body>
 </html>

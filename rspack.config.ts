@@ -20,9 +20,15 @@ export default defineConfig({
   entry: {
     main: './src/main.ts',
   },
+  output: {
+    path: path.resolve(__dirname, 'dist'),
+    filename: '[name].[contenthash].js',
+    publicPath: '/'
+  },
   resolve: {
-    extensions: ['...', '.ts', '.vue'],
+    extensions: ['.ts', '.vue', '.css', '.json', '.js'],
     alias: {
+      // 必须和 tsconfig.json 的 paths 对齐：@ -> src
       '@': path.resolve(__dirname, './src'),
     },
   },
@@ -80,9 +86,9 @@ export default defineConfig({
     }),
     new VueLoaderPlugin() as RspackPluginFunction,
     process.env.RSDOCTOR &&
-      new RsdoctorRspackPlugin({
-        // 插件选项
-      }),
+    new RsdoctorRspackPlugin({
+      // 插件选项
+    }),
   ],
   optimization: {
     minimizer: [
@@ -91,6 +97,17 @@ export default defineConfig({
         minimizerOptions: { targets },
       }),
     ],
+  },
+  // 关键配置：解决 History 模式刷新 404
+  devServer: {
+    port: 8080,
+    // 所有 404 请求都重定向到 index.html
+    historyApiFallback: {
+      index: '/index.html'
+    },
+    // 可选：开启热更新，提升开发体验
+    hot: true,
+    open: true
   },
   experiments: {
     css: true,

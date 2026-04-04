@@ -2,19 +2,24 @@
 <template>
   <div class="h-full bg-gray-50 dark:bg-gray-900">
     <!-- 顶部标题 -->
-    <div class="py-3 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+    <div
+      class="py-3 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+    >
       <h1 class="text-lg font-bold">消息</h1>
     </div>
-    
+
     <!-- 会话列表 -->
     <div class="overflow-auto h-[calc(100vh-10rem)]">
       <div v-if="loading" class="py-8 text-center text-gray-500">加载中...</div>
-      
+
       <!-- 关键修复：添加空值保护（?.） -->
-      <div v-else-if="messageStore.sessionList?.length === 0" class="py-8 text-center text-gray-500">
+      <div
+        v-else-if="messageStore.sessionList?.length === 0"
+        class="py-8 text-center text-gray-500"
+      >
         暂无会话
       </div>
-      
+
       <div v-else>
         <!-- 关键修复：使用 messageStore.sessionList 而非直接 sessionList -->
         <div
@@ -25,23 +30,28 @@
         >
           <div class="flex items-center">
             <!-- 头像 -->
-            <img 
-              :src="session.avatar" 
+            <img
+              :src="session.avatar"
               alt="avatar"
               class="w-12 h-12 rounded-full mr-3"
-            >
-            
+            />
+
             <!-- 会话信息 -->
             <div class="flex-1">
               <div class="flex justify-between items-center">
                 <h3 class="font-medium">{{ session.title }}</h3>
                 <span class="text-xs text-gray-500">{{ session.time }}</span>
               </div>
-              <p class="text-sm text-gray-500 truncate">{{ session.lastMsg }}</p>
+              <p class="text-sm text-gray-500 truncate">
+                {{ session.lastMsg }}
+              </p>
             </div>
-            
+
             <!-- 未读角标 -->
-            <div v-if="session.unread" class="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center">
+            <div
+              v-if="session.unread"
+              class="w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"
+            >
               {{ session.unread }}
             </div>
           </div>

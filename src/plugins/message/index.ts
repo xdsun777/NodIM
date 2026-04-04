@@ -23,10 +23,13 @@ export const messagePlugin: AppPlugin = {
         routerManager.registerPluginRouter('message', messageRouter);
 
         // 2. 监听全局事件（示例：监听新消息事件）
-        eventBus.on('message:new', (msg: { content: string; sessionId: string }) => {
-          console.log('收到新消息：', msg);
-          // 可在此处实现消息推送逻辑
-        });
+        eventBus.on(
+          'message:new',
+          (msg: { content: string; sessionId: string }) => {
+            console.log('收到新消息：', msg);
+            // 可在此处实现消息推送逻辑
+          },
+        );
 
         // 3. 全局注册插件通用组件（可选）
         // app.component('MessageBubble', () => import('./components/MessageBubble.vue'));
@@ -42,7 +45,7 @@ export const messagePlugin: AppPlugin = {
     activate() {
       console.log('📢 消息插件已激活');
       eventBus.emit('message:activate');
-      
+
       // 激活时初始化会话列表
       import('./stores/message').then(({ useMessageStore }) => {
         const messageStore = useMessageStore();

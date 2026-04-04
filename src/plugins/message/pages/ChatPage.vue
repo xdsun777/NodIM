@@ -2,21 +2,25 @@
 <template>
   <div class="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
     <!-- 顶部导航 -->
-    <div class="py-3 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center">
+    <div
+      class="py-3 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center"
+    >
       <button @click="goBack" class="mr-3">←</button>
-      <img 
-        v-if="messageStore.currentSession?.avatar" 
-        :src="messageStore.currentSession.avatar" 
+      <img
+        v-if="messageStore.currentSession?.avatar"
+        :src="messageStore.currentSession.avatar"
         alt="avatar"
         class="w-8 h-8 rounded-full mr-2"
-      >
-      <h1 class="font-medium">{{ messageStore.currentSession?.title || '聊天' }}</h1>
+      />
+      <h1 class="font-medium">
+        {{ messageStore.currentSession?.title || '聊天' }}
+      </h1>
     </div>
-    
+
     <!-- 消息列表 -->
     <div class="flex-1 overflow-auto p-4" ref="messageContainer">
       <div v-if="loading" class="py-8 text-center text-gray-500">加载中...</div>
-      
+
       <div v-else>
         <MessageBubble
           v-for="msg in messageStore.messageList"
@@ -27,7 +31,7 @@
         />
       </div>
     </div>
-    
+
     <!-- 消息输入框 -->
     <MessageInput @send="handleSendMessage" />
   </div>
@@ -72,7 +76,7 @@ watch(
   () => messageStore.messageList,
   () => {
     scrollToBottom();
-  }
+  },
 );
 
 // 发送消息

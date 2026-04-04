@@ -1,54 +1,209 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use async_trait::async_trait;
+use std::{error::Error, sync::Mutex};
 
+use futures::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    prelude::*,
+};
+use libp2p::{
+    Multiaddr, PeerId, Transport,
+    gossipsub::{Behaviour, ConfigBuilder, Event, IdentTopic, MessageAuthenticity},
+    identity,
+    mdns::{Event as MdnsEvent, tokio::Behaviour as Mdns},
+    noise,
+    request_response::{
+        Behaviour as RequestResponse, Codec, Config, Event as RequestResponseEvent, ProtocolSupport,
+    },
+    swarm::{NetworkBehaviour, Swarm, SwarmEvent},
+    tcp, yamux,
+};
+use tauri::Emitter;
 
-mod libp2p_node;
-use libp2p_node::Libp2pNode;
-use libp2p::{PeerId, Multiaddr};
-use std::sync::Mutex;
-use tauri::State;
+// 全局状态（安全异步访问）
+static TAURI_APP: Mutex<Option<tauri::AppHandle>> = Mutex::new(None);
+static SWARM: Mutex<Option<Swarm<ChatBehaviour>>> = Mutex::new(None);
 
-// 全局共享 P2P 节点
-struct AppState {
-    p2p_node: Mutex<Option<Libp2pNode>>,
+#[derive(Clone)]
+pub struct ChatProtocol;
+impl AsRef<str> for ChatProtocol {
+    fn as_ref(&self) -> &str {
+        "/chat/1"
+    }
 }
 
-// 启动 libp2p 节点
+#[derive(Clone, Default)]
+pub struct ChatCodec;
+
+#[derive(Debug, Clone)]
+pub struct ChatRequest(Vec<u8>);
+#[derive(Debug, Clone)]
+pub struct ChatResponse(Vec<u8>);
+
+#[async_trait]
+impl Codec for ChatCodec {
+    type Protocol = ChatProtocol;
+    type Request = ChatRequest;
+    type Response = ChatResponse;
+
+    async fn read_request<T: AsyncRead + Unpin + Send>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Request> {
+        let mut buf = Vec::new();
+        io.read_to_end(&mut buf).await?;
+        Ok(ChatRequest(buf))
+    }
+
+    async fn read_response<T: AsyncRead + Unpin + Send>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Response> {
+        let mut buf = Vec::new();
+        io.read_to_end(&mut buf).await?;
+        Ok(ChatResponse(buf))
+    }
+
+    async fn write_request<T: AsyncWrite + Unpin + Send>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        data: ChatRequest,
+    ) -> std::io::Result<()> {
+        io.write_all(&data.0).await
+    }
+
+    async fn write_response<T: AsyncWrite + Unpin + Send>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        data: ChatResponse,
+    ) -> std::io::Result<()> {
+        io.write_all(&data.0).await
+    }
+}
+
+#[derive(NetworkBehaviour)]
+#[behaviour(to_swarm = "ChatEvent")]
+pub struct ChatBehaviour {
+    pub gossipsub: Behaviour,
+    pub mdns: Mdns,
+    pub req_res: RequestResponse<ChatCodec>,
+}
+
+#[derive(Debug)]
+pub enum ChatEvent {
+    Gossipsub(Event),
+    Mdns(MdnsEvent),
+    ReqRes(RequestResponseEvent<ChatRequest, ChatResponse>),
+}
+
+impl From<Event> for ChatEvent {
+    fn from(e: Event) -> Self {
+        Self::Gossipsub(e)
+    }
+}
+impl From<MdnsEvent> for ChatEvent {
+    fn from(e: MdnsEvent) -> Self {
+        Self::Mdns(e)
+    }
+}
+impl From<RequestResponseEvent<ChatRequest, ChatResponse>> for ChatEvent {
+    fn from(e: RequestResponseEvent<ChatRequest, ChatResponse>) -> Self {
+        Self::ReqRes(e)
+    }
+}
+
+// Tauri 命令：前端发送视频帧
 #[tauri::command]
-async fn start_p2p(state: State<'_, AppState>) -> Result<String, String> {
-    let mut node = Libp2pNode::new().await;
-    let addr = node.local_addr();
-    tokio::spawn(async move { node.run().await });
-    *state.p2p_node.lock().unwrap() = Some(node);
-    Ok(addr)
+fn send_video_frame(data: Vec<u8>) {
+    if let Ok(mut swarm) = SWARM.try_lock() {
+        if let Some(swarm) = swarm.as_mut() {
+            let topic = IdentTopic::new("chat");
+            let _ = swarm.behaviour_mut().gossipsub.publish(topic, data);
+        }
+    }
 }
 
-// 连接到对方节点
-#[tauri::command]
-async fn connect_peer(addr: String, state: State<'_, AppState>) -> Result<(), String> {
-    let multiaddr: Multiaddr = addr.parse().map_err(|e| e.to_string())?;
-    let mut node = state.p2p_node.lock().unwrap();
-    node.as_mut().ok_or("节点未启动")?.connect(multiaddr).await?;
-    Ok(())
-}
+// libp2p 后台循环
+async fn run_libp2p_loop() {
+    let swarm = SWARM.lock().unwrap().take().unwrap();
+    let app = TAURI_APP.lock().unwrap().clone().unwrap();
+    let mut swarm = swarm;
 
-// 发送音视频数据
-#[tauri::command]
-async fn send_video_data(peer_id: String, data: Vec<u8>, state: State<'_, AppState>) -> Result<(), String> {
-    let peer_id: PeerId = peer_id.parse().map_err(|e| e.to_string())?;
-    let mut node = state.p2p_node.lock().unwrap();
-    node.as_mut().ok_or("节点未启动")?.send_video(peer_id, data).await?;
-    Ok(())
+    loop {
+        match swarm.select_next_some().await {
+            SwarmEvent::Behaviour(ChatEvent::Gossipsub(Event::Message { message, .. })) => {
+                let _ = app.emit("remote-video-frame", message.data);
+            }
+            SwarmEvent::Behaviour(ChatEvent::Mdns(MdnsEvent::Discovered(list))) => {
+                for (peer, _) in list {
+                    println!("发现节点: {}", peer);
+                }
+            }
+            _ => {}
+        }
+    }
 }
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    // 生成节点身份
+    let id_keys = identity::Keypair::generate_ed25519();
+    let peer_id = PeerId::from(id_keys.public());
+    println!("Peer ID: {}", peer_id);
 
-fn main() {
+    // 构建传输层
+    let transport = tcp::tokio::Transport::new(tcp::Config::default())
+        .upgrade(libp2p::core::upgrade::Version::V1)
+        .authenticate(noise::Config::new(&id_keys)?)
+        .multiplex(yamux::Config::default())
+        .boxed();
+
+    // Gossipsub 初始化
+    let gossipsub_config = ConfigBuilder::default().build().unwrap();
+    let mut gossipsub = Behaviour::new(
+        MessageAuthenticity::Signed(id_keys.clone()),
+        gossipsub_config,
+    )
+    .unwrap(); // <-- 这里加 .unwrap() 解包 Result！
+    gossipsub.subscribe(&IdentTopic::new("chat")).unwrap();
+
+    // mDNS 局域网发现
+    let mdns = Mdns::new(Default::default(), peer_id)?;
+
+    // 请求响应协议
+    let req_res = RequestResponse::new(
+        std::iter::once((ChatProtocol, ProtocolSupport::Full)),
+        Config::default(),
+    );
+
+    // 组合行为
+    let behaviour = ChatBehaviour {
+        gossipsub,
+        mdns,
+        req_res,
+    };
+
+    // 创建 Swarm
+    let mut swarm = Swarm::new(
+        transport,
+        behaviour,
+        peer_id,
+        libp2p::swarm::Config::with_tokio_executor(),
+    );
+    swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse::<Multiaddr>()?)?;
+
+    // 启动 Tauri
     tauri::Builder::default()
-        .manage(AppState { p2p_node: Mutex::new(None) })
-        .invoke_handler(tauri::generate_handler![start_p2p, connect_peer, send_video_data])
-        .run(tauri::generate_context!())
-        .expect("运行 Tauri 应用失败");
-}
+        .invoke_handler(tauri::generate_handler![send_video_frame])
+        .setup(move |app| {
+            *TAURI_APP.lock().unwrap() = Some(app.handle().clone());
+            *SWARM.lock().unwrap() = Some(swarm);
+            tokio::spawn(run_libp2p_loop());
+            Ok(())
+        })
+        .run(tauri::generate_context!())?;
 
-// fn main() {
-//   nodim::run();
-// }
+    Ok(())
+}

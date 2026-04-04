@@ -11,11 +11,11 @@ export class PluginManager {
   constructor(options: PluginManagerOptions = {}) {
     this.options = {
       autoRegister: true,
-      ...options
+      ...options,
     };
     // 初始化传入的插件
     if (this.options.plugins) {
-      this.options.plugins.forEach(plugin => this.register(plugin));
+      this.options.plugins.forEach((plugin) => this.register(plugin));
     }
   }
 

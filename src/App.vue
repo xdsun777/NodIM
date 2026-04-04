@@ -6,7 +6,7 @@
     <main class="app-content h-full">
       <router-view class="h-full" />
     </main>
-    
+
     <!-- 全局 TabBar：语义化命名 -->
     <footer class="app-tabbar">
       <CommonTabBar />

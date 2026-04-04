@@ -24,6 +24,7 @@ use libp2p::{
     tcp, yamux,
 };
 use tokio::io::{self, AsyncBufReadExt, BufReader};
+use tokio::sync::mpsc::{self, Receiver, Sender};
 
 #[derive(Clone)]
 struct ChatProtocol();
@@ -180,6 +181,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // 读取用户输入
     let mut stdin = BufReader::new(io::stdin()).lines();
 
+    // 视频数据通道
+    let (video_tx, mut video_rx): (Sender<Vec<u8>>, Receiver<Vec<u8>>) = mpsc::channel(100);
+
     loop {
         tokio::select! {
             event = swarm.select_next_some() => {
@@ -261,6 +265,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     }
                     Ok(None) => break, // stdin 关闭
                     Err(e) => eprintln!("Error reading stdin: {}", e),
+                }
+            }
+
+            Some(video_data) = video_rx.recv() => {
+                match swarm.behaviour_mut().gossipsub.publish(topic.clone(), video_data.clone()) {
+                    Ok(_) => println!("Broadcast video data"),
+                    Err(e) => eprintln!("Failed to broadcast video data: {}", e),
                 }
             }
         }

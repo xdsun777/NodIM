@@ -28,14 +28,19 @@ export class RouterManager {
     if (this.registeredPluginRoutes.has(pluginName)) return;
 
     const { routes, prefix = `/${pluginName}` } = pluginRouter;
-    const prefixedRoutes = routes.map(route => ({
+    const prefixedRoutes = routes.map((route) => ({
       ...route,
       path: `${prefix}${route.path}`,
       // 关键：提前加载组件（避免懒加载延迟）
-      component: route.component || (() => import(`@/plugins/${pluginName}/pages/${route.name?.split('-')[1] || 'index'}.vue`))
+      component:
+        route.component ||
+        (() =>
+          import(
+            `@/plugins/${pluginName}/pages/${route.name?.split('-')[1] || 'index'}.vue`
+          )),
     }));
 
-    prefixedRoutes.forEach(route => {
+    prefixedRoutes.forEach((route) => {
       this.router!.addRoute(route);
     });
     this.registeredPluginRoutes.add(pluginName);
@@ -50,12 +55,12 @@ export class RouterManager {
     }
     const { routes, prefix = `/${pluginName}` } = pluginRouter;
     // 为插件路由添加统一前缀
-    const prefixedRoutes = routes.map(route => ({
+    const prefixedRoutes = routes.map((route) => ({
       ...route,
-      path: `${prefix}${route.path}`
+      path: `${prefix}${route.path}`,
     }));
     // 动态添加路由
-    prefixedRoutes.forEach(route => {
+    prefixedRoutes.forEach((route) => {
       this.router!.addRoute(route);
     });
     console.log(`插件${pluginName}路由注册成功：`, prefixedRoutes);
@@ -65,21 +70,19 @@ export class RouterManager {
   removePluginRouter(pluginName: string, pluginRouter: PluginRouter) {
     if (!this.router) return;
     const { routes, prefix = `/${pluginName}` } = pluginRouter;
-    routes.forEach(route => {
+    routes.forEach((route) => {
       this.router!.removeRoute(`${prefix}${route.path}`);
     });
   }
 
   // 新增：初始化所有插件路由（页面刷新时调用）
   initAllPluginRoutes(plugins: Array<{ name: string; router?: PluginRouter }>) {
-    plugins.forEach(plugin => {
+    plugins.forEach((plugin) => {
       if (plugin.router) {
         this.preRegisterPluginRouter(plugin.name, plugin.router);
       }
     });
   }
-
-
 }
 
 // 创建全局路由管理器实例

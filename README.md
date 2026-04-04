@@ -31,6 +31,7 @@ pnpm run preview
 ```
 
 ## For Android
+
 ```
 pnpm dev:android
 pnpm build:android

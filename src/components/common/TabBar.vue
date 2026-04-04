@@ -1,24 +1,31 @@
 <!-- src/components/common/TabBar.vue -->
 <template>
   <!-- 移除固定定位，改为自适应父容器 -->
-  <div class="bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800">
+  <div
+    class="bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800"
+  >
     <div class="max-w-md mx-auto flex items-center justify-around h-16 px-4">
       <button
         v-for="plugin in pluginList"
         :key="plugin.name"
         class="flex flex-col items-center justify-center flex-1 h-full transition-all duration-200"
-        :class="{ 'opacity-60': !isActive(plugin.name), 'opacity-100': isActive(plugin.name) }"
+        :class="{
+          'opacity-60': !isActive(plugin.name),
+          'opacity-100': isActive(plugin.name),
+        }"
         @click="handleTabClick(plugin.name)"
       >
         <div class="text-xl mb-1">
-          <component :is="plugin.icon || 'i-heroicons-chat-bubble-oval-left-20-solid'" />
+          <component
+            :is="plugin.icon || 'i-heroicons-chat-bubble-oval-left-20-solid'"
+          />
         </div>
         <span class="text-xs font-medium">{{ plugin.title }}</span>
         <div
           class="w-6 h-0.5 mt-1 rounded-full transition-all duration-200"
           :class="{
             'bg-primary': isActive(plugin.name),
-            'bg-transparent': !isActive(plugin.name)
+            'bg-transparent': !isActive(plugin.name),
           }"
         ></div>
       </button>
@@ -41,7 +48,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   visible: true,
-  activeColor: 'rgb(59, 130, 246)'
+  activeColor: 'rgb(59, 130, 246)',
 });
 
 const router = useRouter();
@@ -50,10 +57,14 @@ const route = useRoute();
 const pluginList = computed<PluginMeta[]>(() => {
   return props.plugins && props.plugins.length > 0
     ? props.plugins
-    : pluginManager.getPlugins().map(p => p.meta).sort((a, b) => (a.order || 0) - (b.order || 0));
+    : pluginManager
+        .getPlugins()
+        .map((p) => p.meta)
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
 });
 
-const isActive = (pluginName: string) => route.path.startsWith(`/${pluginName}`);
+const isActive = (pluginName: string) =>
+  route.path.startsWith(`/${pluginName}`);
 
 const handleTabClick = (pluginName: string) => {
   router.push(`/${pluginName}`);
@@ -63,11 +74,11 @@ const handleTabClick = (pluginName: string) => {
 watch(
   () => route.path,
   () => {
-    pluginList.value.forEach(plugin => {
+    pluginList.value.forEach((plugin) => {
       if (!isActive(plugin.name)) pluginManager.deactivate(plugin.name);
     });
   },
-  { immediate: true }
+  { immediate: true },
 );
 </script>
 

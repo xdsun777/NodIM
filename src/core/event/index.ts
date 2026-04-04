@@ -26,7 +26,7 @@ export class EventBus {
   // 触发事件
   emit(type: EventType, ...args: any[]) {
     if (!this.events.has(type)) return;
-    this.events.get(type)!.forEach(handler => {
+    this.events.get(type)!.forEach((handler) => {
       try {
         handler(...args);
       } catch (e) {

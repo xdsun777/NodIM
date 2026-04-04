@@ -33,7 +33,10 @@ export const useMessageStore = defineStore('message', {
   getters: {
     // 获取当前会话（添加空值保护）
     currentSession: (state) => {
-      return state.sessionList.find(item => item.id === state.currentSessionId) || null;
+      return (
+        state.sessionList.find((item) => item.id === state.currentSessionId) ||
+        null
+      );
     },
   },
   actions: {
@@ -41,10 +44,10 @@ export const useMessageStore = defineStore('message', {
     async initSessionList() {
       // 避免重复请求
       if (this.sessionList.length > 0) return;
-      
+
       // 模拟异步请求
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       this.sessionList = [
         {
           id: 'session_1',
@@ -71,48 +74,69 @@ export const useMessageStore = defineStore('message', {
           unread: 1,
         },
       ];
-      
+
       // 计算总未读
-      this.totalUnread = this.sessionList.reduce((sum, item) => sum + (item.unread || 0), 0);
+      this.totalUnread = this.sessionList.reduce(
+        (sum, item) => sum + (item.unread || 0),
+        0,
+      );
     },
 
     // 初始化指定会话的消息列表
     async initMessageList(sessionId: string) {
       if (!sessionId) return; // 空值保护
-      
+
       this.currentSessionId = sessionId;
-      
+
       // 模拟异步请求
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
       this.messageList = [
         { id: 'msg_1', content: '你好！', sender: 'other', time: '10:00' },
         { id: 'msg_2', content: '你好呀 😊', sender: 'me', time: '10:01' },
-        { id: 'msg_3', content: '最近项目进展怎么样？', sender: 'other', time: '10:05' },
-        { id: 'msg_4', content: '还挺顺利的，下周应该能上线', sender: 'me', time: '10:06' },
+        {
+          id: 'msg_3',
+          content: '最近项目进展怎么样？',
+          sender: 'other',
+          time: '10:05',
+        },
+        {
+          id: 'msg_4',
+          content: '还挺顺利的，下周应该能上线',
+          sender: 'me',
+          time: '10:06',
+        },
       ];
 
       // 清空当前会话未读
-      const session = this.sessionList.find(item => item.id === sessionId);
+      const session = this.sessionList.find((item) => item.id === sessionId);
       if (session) session.unread = 0;
-      this.totalUnread = this.sessionList.reduce((sum, item) => sum + (item.unread || 0), 0);
+      this.totalUnread = this.sessionList.reduce(
+        (sum, item) => sum + (item.unread || 0),
+        0,
+      );
     },
 
     // 发送消息
     sendMessage(content: string) {
       if (!content.trim()) return;
-      
+
       const newMsg: MessageItem = {
         id: `msg_${Date.now()}`,
         content,
         sender: 'me',
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString([], {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
       };
-      
+
       this.messageList.push(newMsg);
-      
+
       // 更新当前会话最后一条消息
-      const session = this.sessionList.find(item => item.id === this.currentSessionId);
+      const session = this.sessionList.find(
+        (item) => item.id === this.currentSessionId,
+      );
       if (session) {
         session.lastMsg = content;
         session.time = newMsg.time;
@@ -124,10 +148,13 @@ export const useMessageStore = defineStore('message', {
           id: `msg_${Date.now() + 1}`,
           content: '收到！我稍后看看',
           sender: 'other',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          time: new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
         };
         this.messageList.push(replyMsg);
-        
+
         // 更新会话最后一条消息
         if (session) {
           session.lastMsg = replyMsg.content;

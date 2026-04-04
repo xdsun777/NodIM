@@ -23,7 +23,7 @@ export default defineConfig({
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].[contenthash].js',
-    publicPath: '/'
+    publicPath: '/',
   },
   resolve: {
     extensions: ['.ts', '.vue', '.css', '.json', '.js'],
@@ -86,9 +86,9 @@ export default defineConfig({
     }),
     new VueLoaderPlugin() as RspackPluginFunction,
     process.env.RSDOCTOR &&
-    new RsdoctorRspackPlugin({
-      // 插件选项
-    }),
+      new RsdoctorRspackPlugin({
+        // 插件选项
+      }),
   ],
   optimization: {
     minimizer: [
@@ -103,11 +103,11 @@ export default defineConfig({
     port: 8080,
     // 所有 404 请求都重定向到 index.html
     historyApiFallback: {
-      index: '/index.html'
+      index: '/index.html',
     },
     // 可选：开启热更新，提升开发体验
     hot: true,
-    open: true
+    open: true,
   },
   experiments: {
     css: true,

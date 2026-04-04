@@ -2,7 +2,6 @@
 import type { App } from 'vue';
 import type { RouteRecordRaw } from 'vue-router';
 
-
 // 插件元信息
 export interface PluginMeta {
   name: string; // 插件唯一标识（如message/contact）

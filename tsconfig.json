@@ -1,9 +1,6 @@
 {
   "compilerOptions": {
-    "lib": [
-      "DOM",
-      "ES2020"
-    ],
+    "lib": ["DOM", "ES2020"],
     "jsx": "preserve",
     "target": "ES2020",
     "noEmit": true,
@@ -17,25 +14,13 @@
     "allowImportingTsExtensions": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/*"
-      ]
+      "@/*": ["src/*"]
     },
     /* type checking */
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.vue",
-    "src/shims-vue.d.ts",
-    "*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "build",
-    "src-tauri"
-  ]
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/shims-vue.d.ts", "*.ts"],
+  "exclude": ["node_modules", "dist", "build", "src-tauri"]
 }

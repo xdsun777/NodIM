@@ -6,9 +6,10 @@
     "dev": "rspack dev",
     "dev:tauri": "tauri dev",
     "dev:android": "tauri android dev",
-    "build": "cross-env RSDOCTOR=true rspack build",
+
+    "build": "rspack build",
     "build:android": "tauri android build",
-    "preview": "rspack preview",
+    "preview": "cross-env RSDOCTOR=true rspack preview",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

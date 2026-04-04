@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "NodIM",
-        "width": 600,
-        "height": 900,
+        "width": 900,
+        "height": 600,
         "resizable": true,
         "fullscreen": false,
         "devtools": true

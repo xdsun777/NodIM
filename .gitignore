@@ -18,6 +18,3 @@ dist/
 .vscode
 !.vscode/extensions.json
 .idea
-
-# Android
-**/gen/*

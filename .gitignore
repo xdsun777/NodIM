@@ -2,7 +2,7 @@
 .DS_Store
 *.local
 *.log*
-docs/*.jks*
+docs/*.jks.old
 docs/*.properties
 docs/*.kts
 # Dist

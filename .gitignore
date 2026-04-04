@@ -9,7 +9,6 @@ docs/*.kts
 node_modules
 dist/
 */target/
-**/gen/schemas
 
 # Profile
 .rspack-profile-*/
@@ -20,4 +19,6 @@ dist/
 .idea
 
 # Android
-**/gen/*
+**/.gradle/**
+**/build/**
+**/jniLibs/**

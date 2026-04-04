@@ -77,25 +77,26 @@
     模块结构：
 
     ```
-p2p-core
-│
-├── node
-│   └── node.rs
-│
-├── behaviour
-│   └── behaviour.rs
-│
-├── discovery
-│   ├── bootstrap.rs
-│   ├── mdns.rs
-│   └── kad.rs
-│
-├── transport
-│
-├── peer
-│   └── peer_manager.rs
-│
-└── connection
+    p2p-core
+    │
+    ├── node
+    │   └── node.rs
+    │
+    ├── behaviour
+    │   └── behaviour.rs
+    │
+    ├── discovery
+    │   ├── bootstrap.rs
+    │   ├── mdns.rs
+    │   └── kad.rs
+    │
+    ├── transport
+    │
+    ├── peer
+    │   └── peer_manager.rs
+    │
+    └── connection
+    ```
 ```
 
 职责：
@@ -111,7 +112,7 @@ p2p-core
     
     实现具体协议。
 
-    ```
+```
 p2p-protocols
     │
 ├── chat
@@ -126,7 +127,7 @@ p2p-protocols
     ```
     
     例如：
-
+    
     ```
 chat
      ├── codec.rs
@@ -143,9 +144,9 @@ decode
     ```
     
 ------
-    
+
 # 四、libp2p 网络行为设计
-    
+
     节点 behaviour：
     
     ```
@@ -196,7 +197,7 @@ decode
     
 示例：
     
-    ```
+```
     message
  ├── entity.rs
      ├── value_objects.rs
@@ -204,7 +205,7 @@ decode
     ```
     
     示例实体：
-
+    
     ```
 pub struct Message {
         pub id: MessageId,
@@ -216,11 +217,11 @@ pub struct Message {
     ```
 
     ------
-
+    
     # 六、im-application（业务用例）
     
     Application 层实现 **use cases**。
-
+    
     ```
 im-application
     │
@@ -234,7 +235,7 @@ im-application
     ```
 
     例如：
-
+    
     ```
     chat
      ├── send_message.rs
@@ -258,17 +259,17 @@ im-application
     ```
 
     ------
-
+    
     # 七、storage-core
     
     统一数据访问层。
-
+    
     推荐数据库：
-
+    
     -   SQLite
     
     结构：
-
+    
     ```
 storage-core
     │
@@ -280,7 +281,7 @@ storage-core
     ```
     
     Repository 实现：
-
+    
     ```
 message_repo_sqlite
     contact_repo_sqlite
@@ -290,17 +291,17 @@ group_repo_sqlite
     ------
     
     # 八、crypto-core
-
-    统一加密模块。
-
-    推荐算法：
     
+    统一加密模块。
+    
+    推荐算法：
+
 ```
     x25519
 chacha20poly1305
     ed25519
 ```
-    
+
 结构：
     
 ```
@@ -312,27 +313,27 @@ chacha20poly1305
 │
     └── signatures
 ```
-    
+
     职责：
-    
+
 ```
     密钥生成
 消息加密
     签名验证
-    ```
-    
+```
+
 ------
-    
+
 # 九、事件总线
-    
+
 IM 系统内部必须事件驱动。
     
 crate：
     
 ```
     event-bus
-    ```
-    
+```
+
 事件类型：
     
 ```
@@ -342,9 +343,9 @@ crate：
 GroupMessageReceived
     FileReceived
 ```
-    
+
     流程：
-    
+
 ```
     network
 ↓
@@ -354,19 +355,19 @@ GroupMessageReceived
 ↓
     UI
 ```
-    
+
 Rust实现：
     
 ```
     tokio broadcast
 ```
-    
+
 ------
-    
+
 # 十、消息处理管线
-    
+
     工业级 IM 必须 pipeline。
-    
+
 ```
     Network
 ↓
@@ -379,8 +380,8 @@ Rust实现：
     Store
 ↓
     EmitEvent
-    ```
-    
+```
+
 优点：
     
 -   可扩展
@@ -417,11 +418,11 @@ pull
 ```
     3 ~ 7 days
 ```
-    
+
 ------
-    
+
 # 十二、文件传输协议
-    
+
 文件不走聊天协议。
     
     独立协议：
@@ -581,3 +582,35 @@ pull
     ↓
     tauri UI
     ```
+
+
+
+
+
+
+
+| 分类             | 组件 / 概念                               | 核心作用           | 关键能力                                                     |
+| ---------------- | ----------------------------------------- | ------------------ | ------------------------------------------------------------ |
+| **基础身份**     | Peer ID                                   | 节点唯一身份标识   | 基于公钥哈希，全网唯一，用于识别、认证、寻址                 |
+|                  | PeerInfo                                  | 节点信息封装       | 包含 PeerID + 监听地址集合                                   |
+|                  | Multiaddr                                 | 统一多协议地址格式 | 一条地址描述协议 + 地址 + 端口，如 `/ip4/1.2.3.4/tcp/4001/p2p/Qmxxx` |
+| **传输层**       | Transports                                | 底层网络传输       | 支持 TCP、UDP、QUIC、WebTransport、WebRTC、WebSocket 等      |
+|                  | Connection Upgrading                      | 连接升级           | 裸连接 → 加密 → 流复用 的标准化流程                          |
+| **流复用**       | Stream Multiplexing (mplex/yamux)         | 单连接多逻辑流     | 一条 TCP/QUIC 承载多条独立双向流，避免频繁建连               |
+| **安全通道**     | Security Channels                         | 节点加密与认证     | 实现 TLS 1.3、Noise 等加密协议，防窃听防伪造                 |
+| **NAT 与穿越**   | NAT Traversal                             | 内网节点互通       | 支持 UPNP、NAT-PMP、autonat 检测                             |
+|                  | Hole Punching                             | 点对点打洞         | 让两个内网节点直接建立连接                                   |
+|                  | Circuit Relay                             | 中继转发           | 无法直连时通过第三方中继节点通信                             |
+| **节点发现**     | Peer Discovery                            | 发现网络中其他节点 | 组播、mDNS、bootstrap 节点、随机漫步                         |
+|                  | Rendezvous                                | 会合点服务         | 节点注册自己，其他节点通过会合点查询发现                     |
+| **路由与寻址**   | Peer Routing                              | 查找节点地址       | 知道 PeerID 就能找到其监听地址                               |
+|                  | Content Routing                           | 查找内容提供者     | 根据 CID 找到谁拥有该数据                                    |
+|                  | Distributed Hash Table (DHT)              | 分布式哈希表       | Kademlia DHT，同时支持 Peer 路由 + 内容路由                  |
+|                  | Pubsub (Gossipsub)                        | 发布 / 订阅广播    | 主题消息广播，可靠、可扩展、防篡改                           |
+| **数据交换**     | Bitswap                                   | P2P 块交换协议     | 类似 BT 下载，请求 / 发送数据块，用于 IPFS                   |
+|                  | Autorelay                                 | 自动中继           | 节点无法被直连时自动寻找并使用中继                           |
+| **协议协商**     | Protocol Negotiation (multistream-select) | 协议握手与选择     | 双方协商支持的协议版本，确定通信格式                         |
+| **连接管理**     | Connection Manager                        | 连接池管理         | 维护连接数量、修剪无用连接、保活                             |
+|                  | Connection Gating                         | 连接防火墙         | 允许 / 拒绝特定节点、地址、协议的连接                        |
+| **消息与可靠性** | Message Ordering & Reliability            | 流级可靠保证       | 基于流的有序可靠传输，类似 TCP 语义                          |
+| **网络监测**     | Metrics & Observability                   | 监控与可观测性     | 连接数、流数、流量、延迟、错误率                             |

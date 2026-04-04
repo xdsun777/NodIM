@@ -7,7 +7,6 @@
 node_modules
 dist/
 */target/
-**/gen/schemas
 
 # Profile
 .rspack-profile-*/

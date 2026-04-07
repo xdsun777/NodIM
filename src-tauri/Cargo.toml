@@ -31,11 +31,13 @@ base64 = "0.21"
 futures = "0.3"
 bytes = "1"
 once_cell = "1.19"
+lazy_static = "1.4"
 
 # Tauri
 tauri = { version = "2.0", features = [] }
 tauri-build = "2.0"
 tauri-plugin-log = "2"
+tauri-plugin-opener = "2"
 log = "0.4"
 
 libp2p = { version = "0.52.4", features = [

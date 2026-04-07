@@ -1,7 +1,7 @@
 <!-- src/App.vue -->
 <template>
   <!-- 语义化根容器：无 ID，仅用类名控制布局 -->
-  <div class="app-root h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+  <div class="app-root h-screen overflow-hidden bg-gray-50 dark:bg-gray-200">
     <!-- 路由出口：语义化命名 + 布局类 -->
     <main class="app-content h-full">
       <router-view class="h-full" />

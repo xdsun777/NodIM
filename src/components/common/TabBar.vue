@@ -2,7 +2,7 @@
 <template>
   <!-- 移除固定定位，改为自适应父容器 -->
   <div
-    class="bg-white border-t border-gray-200 dark:bg-gray-900 dark:border-gray-800"
+    class="bg-white border-t border-gray-200 dark:bg-gray-200 dark:border-gray-200"
   >
     <div class="max-w-md mx-auto flex items-center justify-around h-16 px-4">
       <button

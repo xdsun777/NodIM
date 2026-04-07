@@ -9,7 +9,7 @@ const routes = [
     path: '/',
     name: 'root',
     // redirect: '/message', // 默认跳转到消息插件
-    component: () => import('@/components/tests/Chat.vue'),
+    component: () => import('@/components/tests/test.vue'),
     meta: { title: '消息' },
   },
   {

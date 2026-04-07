@@ -1,5 +1,5 @@
 // 全局样式
-import './style.css';
+import '@/style.css';
 
 // src/main.ts
 import { createApp } from 'vue';

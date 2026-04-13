@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <title>Tailwind CSS v4 主题</title>
+  <!-- 官方 v4 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style type="text/tailwindcss">
+    /* 注册自定义颜色 */
+    @theme {
+      --color-primary: var(--color-primary);
+      --color-bg: var(--color-bg);
+      --color-text: var(--color-text);
+    }
+
+    /* 主题变量 */
+    @layer theme {
+      :root[data-theme="light"] {
+        --color-primary: #3b82f6;
+        --color-bg: #ffffff;
+        --color-text: #111827;
+      }
+      :root[data-theme="dark"] {
+        --color-primary: #60a5fa;
+        --color-bg: #0f172a;
+        --color-text: #f1f5f9;
+      }
+      :root[data-theme="pink"] {
+        --color-primary: #ec4899;
+        --color-bg: #fdf2f8;
+        --color-text: #1f2937;
+      }
+    }
+  </style>
+</head>
+<body class="bg-bg text-text p-6">
+  <h1 class="text-primary text-2xl">Tailwind CSS v4 主题切换</h1>
+
+  <div class="my-4 space-x-2">
+    <button onclick="setTheme('light')" class="px-4 py-2 bg-primary text-white rounded">浅色</button>
+    <button onclick="setTheme('dark')" class="px-4 py-2 bg-primary text-white rounded">深色</button>
+    <button onclick="setTheme('pink')" class="px-4 py-2 bg-primary text-white rounded">粉色</button>
+  </div>
+
+  <script>
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+    }
+    const saved = localStorage.getItem('theme');
+    if (saved) setTheme(saved);
+  </script>
+</body>
+</html>

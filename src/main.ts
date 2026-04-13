@@ -1,5 +1,6 @@
 // 全局样式
-import '@/style.css';
+import '@fortawesome/fontawesome-free/css/all.css';
+import './assets/theme/index.css';
 
 // src/main.ts
 import { createApp } from 'vue';
@@ -11,8 +12,9 @@ import { router } from '@/router';
 import { pluginManager } from '@/core/plugin';
 import { eventBus } from '@/core/event';
 
-// 导入消息插件（关键：确保插件被注册）
+// 导入插件（关键：确保插件被注册）
 import '@/plugins/message';
+import '@/plugins/contact';
 
 // 创建Vue实例
 const app = createApp(App);
@@ -42,5 +44,5 @@ if (mountPoint) {
   );
 }
 
-// 暴露实例（可选）
+// 暴露实例
 export { app, pinia, router };

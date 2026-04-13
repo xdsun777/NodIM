@@ -19,7 +19,7 @@ export interface SessionItem {
   unread?: number;
 }
 
-export const useMessageStore = defineStore('message', {
+export const useMessageStore = defineStore('contact', {
   state: () => ({
     // 会话列表（初始化为空数组，避免 undefined）
     sessionList: [] as SessionItem[],
@@ -53,7 +53,7 @@ export const useMessageStore = defineStore('message', {
           id: 'session_1',
           title: '张三',
           avatar: 'https://picsum.photos/200/200?random=1',
-          lastMsg: '最近忙吗？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？',
+          lastMsg: '最近忙吗？',
           time: '10:20',
           unread: 2,
         },

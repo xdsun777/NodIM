@@ -8,8 +8,8 @@ const routes = [
   {
     path: '/',
     name: 'root',
-    // redirect: '/message', // 默认跳转到消息插件
-    component: () => import('@/components/tests/test.vue'),
+    redirect: '/message', // 默认跳转到消息插件
+    // component: () => import('@/components/tests/Chat.vue'),
     meta: { title: '消息' },
   },
   {
@@ -40,14 +40,14 @@ export const router = createRouter({
 routerManager.setRouter(router);
 
 // 4. 预注册所有插件路由（解决刷新404问题）
-// 🔥 提前导入所有插件的路由配置，确保刷新时路由已存在
+//  提前导入所有插件的路由配置，确保刷新时路由已存在
 import { messagePlugin } from '@/plugins/message';
-// import { contactPlugin } from '@/plugins/contact'
+import { contactPlugin } from '@/plugins/contact'
 // import { settingsPlugin } from '@/plugins/settings'
 // import { minePlugin } from '@/plugins/mine'
 // 批量预注册插件路由
 // const allPlugins = [messagePlugin, contactPlugin, settingsPlugin, minePlugin]
-const allPlugins = [messagePlugin];
+const allPlugins = [messagePlugin,contactPlugin];
 allPlugins.forEach((plugin) => {
   if (plugin.router) {
     routerManager.preRegisterPluginRouter(plugin.meta.name, plugin.router);

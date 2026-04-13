@@ -9,3 +9,28 @@
 // │   ├── call/             # 音视频插件
 // │   ├── settings/         # 设置插件
 // │   └── mine/             # 个人中心插件
+// src/plugins/message/router.ts
+import type { PluginRouter } from '@/core/plugin/type';
+
+// 懒加载页面（确保路径正确）
+const SessionList = () => import('@/plugins/contact/pages/SessionList.vue');
+const ChatPage = () => import('@/plugins/contact/pages/ChatPage.vue');
+
+// 插件路由配置
+export const contactRouter: PluginRouter = {
+  prefix: '/contact', // 路由前缀
+  routes: [
+    {
+      path: '/', // 最终路径：/message/
+      name: 'contact-session-list',
+      component: SessionList,
+      meta: { title: '联系人列表' },
+    },
+    {
+      path: '/chat/:sessionId', // 最终路径：/message/chat/:sessionId
+      name: 'contact-chat',
+      component: ChatPage,
+      meta: { title: '联系人' },
+    },
+  ],
+};

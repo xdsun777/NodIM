@@ -1,10 +1,5 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-// mod commands;
-// mod p2p;
-
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-// ============== 你原版代码 100% 原封不动 ==============
+
 use async_trait::async_trait;
 use futures::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
@@ -32,7 +27,7 @@ use std::sync::OnceLock;
 use std::{error::Error, iter, time::Duration};
 use tauri::Emitter;
 
-// 你的协议
+// 通信协议定义
 #[derive(Clone)]
 pub struct ChatProtocol();
 impl AsRef<str> for ChatProtocol {
@@ -41,13 +36,13 @@ impl AsRef<str> for ChatProtocol {
     }
 }
 
-// 你的编解码器
+// ====================== 核心修复：严格匹配 libp2p Codec 生命周期 ======================
 #[derive(Clone, Default)]
 pub struct ChatCodec;
 #[derive(Debug, Clone)]
-pub struct ChatRequest(Vec<u8>);
+pub struct ChatRequest(pub Vec<u8>);
 #[derive(Debug, Clone)]
-pub struct ChatResponse(Vec<u8>);
+pub struct ChatResponse(pub Vec<u8>);
 
 #[async_trait]
 impl Codec for ChatCodec {
@@ -55,11 +50,8 @@ impl Codec for ChatCodec {
     type Request = ChatRequest;
     type Response = ChatResponse;
 
-    async fn read_request<T>(
-        &mut self,
-        _: &Self::Protocol,
-        io: &mut T,
-    ) -> std::io::Result<Self::Request>
+    // 严格照搬libp2p官方签名，无额外约束，解决生命周期错误
+    async fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Request>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -68,11 +60,7 @@ impl Codec for ChatCodec {
         Ok(ChatRequest(buf))
     }
 
-    async fn read_response<T>(
-        &mut self,
-        _: &Self::Protocol,
-        io: &mut T,
-    ) -> std::io::Result<Self::Response>
+    async fn read_response<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Response>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -81,32 +69,23 @@ impl Codec for ChatCodec {
         Ok(ChatResponse(buf))
     }
 
-    async fn write_request<T>(
-        &mut self,
-        _: &Self::Protocol,
-        io: &mut T,
-        ChatRequest(data): ChatRequest,
-    ) -> std::io::Result<()>
+    async fn write_request<T>(&mut self, _: &Self::Protocol, io: &mut T, ChatRequest(data): ChatRequest) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
         io.write_all(&data).await
     }
 
-    async fn write_response<T>(
-        &mut self,
-        _: &Self::Protocol,
-        io: &mut T,
-        ChatResponse(data): ChatResponse,
-    ) -> std::io::Result<()>
+    async fn write_response<T>(&mut self, _: &Self::Protocol, io: &mut T, ChatResponse(data): ChatResponse) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
         io.write_all(&data).await
     }
 }
+// ====================================================================================
 
-// 你的网络行为
+// 网络行为组合
 #[derive(NetworkBehaviour)]
 #[behaviour(to_swarm = "Event")]
 pub struct ChatBehaviour {
@@ -115,7 +94,7 @@ pub struct ChatBehaviour {
     pub req_res: RequestResponse<ChatCodec>,
 }
 
-// 你的事件枚举
+// 行为事件
 #[derive(Debug)]
 pub enum Event {
     Gossipsub(GossipsubEvent),
@@ -138,14 +117,13 @@ impl From<RequestResponseEvent<ChatRequest, ChatResponse>> for Event {
         Event::ReqRes(e)
     }
 }
-// ============== 你原版代码 结束 ==============
 
-// ============== 修复：通道通信（解决Swarm线程安全） ==============
+// Tauri 通信
 use serde::Serialize;
 use tauri::Manager;
 use tokio::sync::{mpsc, oneshot};
 
-// 命令消息枚举
+// 命令枚举
 #[derive(Debug)]
 enum P2pCommand {
     GetLocalPeerId(oneshot::Sender<String>),
@@ -154,44 +132,31 @@ enum P2pCommand {
     SendPrivate(String, String),
 }
 
-// 全局通道
-// static mut COMMAND_TX: Option<mpsc::Sender<P2pCommand>> = None;
+// 线程安全全局通道
 static COMMAND_TX: OnceLock<mpsc::Sender<P2pCommand>> = OnceLock::new();
 
-// 前端返回结构体
+// 前端数据结构
 #[derive(Serialize, Clone)]
 pub struct PeerInfo {
     pub peer_id: String,
 }
 
-// ============== Tauri 命令（前端调用） ==============
+// Tauri 命令接口
 #[tauri::command]
 async fn get_local_peer_id() -> Result<String, String> {
     let (tx, rx) = oneshot::channel();
-    // unsafe {
-    //     COMMAND_TX.as_ref().ok_or("P2P未初始化")?.send(P2pCommand::GetLocalPeerId(tx)).map_err(|e| e.to_string()).await;
-    // }
     let _ = COMMAND_TX
         .get()
         .ok_or("P2P未初始化")?
         .send(P2pCommand::GetLocalPeerId(tx))
         .map_err(|e| e.to_string())
         .await;
-
     rx.await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 async fn get_discovered_peers() -> Result<Vec<PeerInfo>, String> {
     let (tx, rx) = oneshot::channel();
-    // unsafe {
-    //     COMMAND_TX
-    //         .as_ref()
-    //         .ok_or("P2P未初始化")?
-    //         .send(P2pCommand::GetPeers(tx))
-    //         .map_err(|e| e.to_string())
-    //         .await;
-    // }
     let _ = COMMAND_TX
         .get()
         .ok_or("P2P 节点未初始化")?
@@ -204,14 +169,6 @@ async fn get_discovered_peers() -> Result<Vec<PeerInfo>, String> {
 
 #[tauri::command]
 async fn send_broadcast(msg: String) -> Result<(), String> {
-    // unsafe {
-    //     COMMAND_TX
-    //         .as_ref()
-    //         .ok_or("P2P未初始化")?
-    //         .send(P2pCommand::SendBroadcast(msg))
-    //         .map_err(|e| e.to_string())
-    //         .await;
-    // }
     let _ = COMMAND_TX
         .get()
         .ok_or("P2P 节点未初始化")?
@@ -223,25 +180,16 @@ async fn send_broadcast(msg: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn send_private_msg(peer_id: String, msg: String) -> Result<(), String> {
-    // unsafe {
-    //     COMMAND_TX
-    //         .as_ref()
-    //         .ok_or("P2P未初始化")?
-    //         .send(P2pCommand::SendPrivate(peer_id, msg))
-    //         .map_err(|e| e.to_string())
-    //         .await;
-    // }
     let _ = COMMAND_TX
         .get()
         .ok_or("P2P 节点未初始化")?
         .send(P2pCommand::SendPrivate(peer_id, msg))
         .map_err(|e| e.to_string())
         .await;
-
     Ok(())
 }
 
-// ============== Swarm 独立任务（核心修复） ==============
+// P2P 核心任务
 async fn run_swarm_task(
     mut swarm: Swarm<ChatBehaviour>,
     mut rx: mpsc::Receiver<P2pCommand>,
@@ -252,13 +200,12 @@ async fn run_swarm_task(
 
     loop {
         tokio::select! {
-            // 处理Swarm事件（你的原版逻辑）
+            // 处理libp2p事件
             event = swarm.select_next_some() => {
                 match event {
                     SwarmEvent::NewListenAddr { address, .. } => {
                         println!("Listening on {address}");
                     }
-
                     SwarmEvent::Behaviour(Event::Mdns(event)) => match event {
                         MdnsEvent::Discovered(peers) => {
                             discovered_peers.clear();
@@ -270,25 +217,21 @@ async fn run_swarm_task(
                         }
                         _ => {}
                     },
-
                     SwarmEvent::Behaviour(Event::Gossipsub(GossipsubEvent::Message {
                         propagation_source, message, ..
                     })) => {
                         let content = String::from_utf8_lossy(&message.data);
                         let _ = app_handle.emit("message:broadcast", (propagation_source.to_string(), content.to_string()));
                     }
-
                     SwarmEvent::Behaviour(Event::ReqRes(RequestResponseEvent::Message { peer, message })) => {
                         if let RequestResponseMessage::Request { request, .. } = message {
                             let content = String::from_utf8_lossy(&request.0);
                             let _ = app_handle.emit("message:private", (peer.to_string(), content.to_string()));
                         }
                     }
-
                     _ => {}
                 }
             }
-
             // 处理前端命令
             Some(cmd) = rx.recv() => {
                 match cmd {
@@ -312,21 +255,23 @@ async fn run_swarm_task(
     }
 }
 
-// ============== Tauri 主函数（兼容移动端） ==============
+// ====================== 修复：移除不兼容的 #[tauri::main] 宏 ======================
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() -> Result<(), Box<dyn Error>> {
-    // 创建Tokio运行时
     let rt = tokio::runtime::Runtime::new()?;
     rt.block_on(async {
-        // 你的原版：初始化Swarm（完全不变）
+        // 初始化P2P密钥
         let id_keys = identity::Keypair::generate_ed25519();
         let peer_id = PeerId::from(id_keys.public());
 
+        // 构建网络传输
         let transport = tcp::tokio::Transport::new(tcp::Config::default())
             .upgrade(upgrade::Version::V1)
             .authenticate(noise::Config::new(&id_keys).unwrap())
             .multiplex(yamux::Config::default())
             .boxed();
 
+        // 初始化Gossipsub（群聊）
         let gossipsub_config = ConfigBuilder::default()
             .heartbeat_interval(Duration::from_secs(5))
             .build()
@@ -334,36 +279,32 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         let mut gossipsub = Gossipsub::new(
             MessageAuthenticity::Signed(id_keys.clone()),
             gossipsub_config,
-        )
-        .unwrap();
+        ).unwrap();
         let topic = IdentTopic::new("chat");
         gossipsub.subscribe(&topic).unwrap();
 
+        // 初始化mDNS（节点发现）
         let mdns = Mdns::new(Default::default(), peer_id).unwrap();
+
+        // 初始化RequestResponse（私聊）
         let req_res = RequestResponse::new(
             iter::once((ChatProtocol(), ProtocolSupport::Full)),
             Config::default(),
         );
-        let behaviour = ChatBehaviour {
-            gossipsub,
-            mdns,
-            req_res,
-        };
 
+        // 组合行为
+        let behaviour = ChatBehaviour { gossipsub, mdns, req_res };
+
+        // 创建Swarm
         let mut swarm = Swarm::new(
-            transport,
-            behaviour,
-            peer_id,
-            SwarmConfig::with_tokio_executor(),
+            transport, behaviour, peer_id, SwarmConfig::with_tokio_executor()
         );
         let _ = swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse::<Multiaddr>().unwrap());
 
         // 创建命令通道
         let (tx, rx) = mpsc::channel(32);
-        // unsafe {
-        //     COMMAND_TX = Some(tx);
-        // }
         let _ = COMMAND_TX.set(tx);
+
         // 启动Tauri
         tauri::Builder::default()
             .invoke_handler(tauri::generate_handler![
@@ -373,7 +314,6 @@ pub fn run() -> Result<(), Box<dyn Error>> {
                 send_private_msg
             ])
             .setup(|app| {
-                // 启动Swarm任务
                 tokio::spawn(run_swarm_task(swarm, rx, app.app_handle().clone()));
                 Ok(())
             })
@@ -383,18 +323,3 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
     Ok(())
 }
-
-// #[cfg_attr(mobile, tauri::mobile_entry_point)]
-// pub fn run() -> Result<(), Box<dyn std::error::Error>> {
-
-//     tauri::Builder::default()
-//         .plugin(tauri_plugin_opener::init())
-//         .invoke_handler(tauri::generate_handler![
-//             commands::start_p2p_node,
-//             commands::get_discovered_peers,
-//             commands::send_p2p_request,
-//             commands::greet
-//         ])
-//         .run(tauri::generate_context!())
-//         .expect("error while running tauri application");
-// }

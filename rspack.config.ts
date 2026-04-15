@@ -63,14 +63,14 @@ export default defineConfig({
           {
             loader: 'builtin:lightningcss-loader',
             options: {
-              targets: ['chrome >= 87', 'edge >= 88', '> 0.5%'],
+              targets: ['chrome >= 60', 'edge >= 60'],
             },
           },
           'postcss-loader',
         ],
       },
       {
-        test: /\.(png|svg|jpg|wasm|woff2)$/,
+        test: /\.(png|svg|jpg|wasm|woff2|woff)$/,
         type: 'asset/resource',
       },
     ],

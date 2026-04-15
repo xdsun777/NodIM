@@ -1,6 +1,8 @@
 // 全局样式
 import '@fortawesome/fontawesome-free/css/all.css';
-import './assets/theme/index.css';
+import '@fontsource/noto-sans-sc';
+
+import '@/assets/base.css';
 
 // src/main.ts
 import { createApp } from 'vue';
@@ -13,8 +15,9 @@ import { pluginManager } from '@/core/plugin';
 import { eventBus } from '@/core/event';
 
 // 导入插件（关键：确保插件被注册）
-import '@/plugins/message';
-import '@/plugins/contact';
+// import '@/plugins/message';
+// import '@/plugins/contact';
+import '@/plugins/test';
 
 // 创建Vue实例
 const app = createApp(App);

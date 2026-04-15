@@ -22,6 +22,6 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
-  "include": ["src/**/*.ts", "src/**/*.vue", "src/shims-vue.d.ts", "*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.vue", "src/shims-vue.d.ts", "*.ts", "tailwind.js"],
   "exclude": ["node_modules", "dist", "build", "src-tauri"]
 }

@@ -1,7 +1,93 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-.vue-mount-container {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+/* @import "./assets/theme/dark.css"; */
+
+:root {
+  --primary: rgb(80 50 143);
+  /* 默认紫色 */
 }
+
+/* 你想切换的其他主题色 */
+html.red {
+  --primary: rgb(220 38 38);
+}
+
+html.blue {
+  --primary: rgb(59 130 246);
+}
+/* 定义全局 */
+@layer base {
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
+  .scrollbar-hide {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-delay: 0s;
+  }
+}
+
+/* 自定义 container */
+@layer utilities {
+  .container {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: calc((100vw + 16px - 640px) / 2);
+      padding-right: calc((100vw + 16px - 640px) / 2);
+    }
+  }
+
+  @media (min-width: 768px) {
+    .container {
+      padding-left: calc((100vw + 16px - 768px) / 2);
+      padding-right: calc((100vw + 16px - 768px) / 2);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: calc((100vw + 16px - 1024px) / 2);
+      padding-right: calc((100vw + 16px - 1024px) / 2);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .container {
+      padding-left: calc((100vw + 16px - 1280px) / 2);
+      padding-right: calc((100vw + 16px - 1280px) / 2);
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .container {
+      padding-left: calc((100vw + 16px - 1536px) / 2);
+      padding-right: calc((100vw + 16px - 1536px) / 2);
+    }
+  }
+}
+

@@ -1,0 +1,64 @@
+<template>
+<div class="flex h-screen flex-col overflow-hidden border-8 border-green-600 sm:flex-row">
+  <!-- 移动端头部 -->
+  <header class="flex-2 flex flex-col items-start justify-start border-2 border-red-600 bg-white px-4 py-3 sm:hidden">
+    <div class="flex w-full flex-row items-center border-2 border-red-600 text-purple-600">
+      <img :src="logo" alt="图片" class="" />
+      <h1 class="border-2 border-red-600 text-xl font-bold">Nodim小屏幕</h1>
+      <img src="https://ts2.tc.mm.bing.net/th/id/OADD2.1238050113893244_1SNKXKYVV5TH3BY?w=32&h=32&o=6&pid=21.2" alt="扫描" class="ml-auto" />
+    </div>
+    <div class="flex w-full">
+      <input class="w-full rounded-full bg-gray-100 px-10 py-3 text-gray-700 focus:outline-none" placeholder="搜索" type="text" />
+      <i class="fas fa-search absolute right-0 top-1/2 -translate-y-1/2 text-gray-400"></i>
+    </div>
+  </header>
+
+  <!-- 大屏幕 -->
+  <nav class="fixed bottom-0 left-0 right-0 flex items-center justify-around border-2 border-t border-red-600 bg-white text-center sm:static sm:h-full sm:w-24 sm:flex-col sm:justify-start sm:gap-4 sm:border-r sm:border-t-0 sm:pt-4">
+    <!-- pc端头部 -->
+    <div class="start-1 hidden w-full flex-row flex-nowrap items-center justify-center gap-1 overflow-hidden border-2 border-blue-600 sm:flex">
+      <img src="https://ts2.tc.mm.bing.net/th/id/OADD2.1238050113893244_1SNKXKYVV5TH3BY?w=32&h=32&o=6&pid=21.2" alt="" class="h-6 w-6" />
+      <h1 class="w-full overflow-hidden whitespace-nowrap border-2 border-red-600 text-[clamp(0.7rem,1vw,1rem)] font-bold leading-none">大屏幕Nodim</h1>
+    </div>
+    <button class="border-2 border-red-600">消息</button>
+    <button class="border-2 border-red-600">联系人</button>
+    <button class="border-2 border-red-600">我的</button>
+  </nav>
+
+  <main class="flex h-full w-full flex-row border-4 border-purple-950">
+    <!-- 👇 核心修改：让宽度自适应子元素内容 -->
+    <div class="scrollbar-hide h-full w-full overflow-y-auto border-4 border-purple-950 sm:max-w-fit">
+      <ul role="list" class="w-full divide-slate-200 border-2 border-blue-600 p-3">
+        <li class="flex w-full flex-nowrap items-center border-2 border-blue-600 py-4 first:pt-0 last:pb-0">
+          <img class="h-10 w-10 shrink-0 rounded-full" src="https://ts2.tc.mm.bing.net/th/id/OADD2.1238050113893244_1SNKXKYVV5TH3BY?w=32&h=32&o=6&pid=21.2" alt="" />
+          <div class="ml-3 overflow-hidden">
+            <p class="text-sm font-medium text-slate-900">name</p>
+            <p class="truncate text-sm text-slate-500">person@email.com</p>
+          </div>
+        </li>
+        <li class="flex w-full flex-nowrap items-center border-2 border-blue-600 py-4 first:pt-0 last:pb-0">
+          <img class="h-10 w-10 shrink-0 rounded-full" src="https://ts2.tc.mm.bing.net/th/id/OADD2.1238050113893244_1SNKXKYVV5TH3BY?w=32&h=32&o=6&pid=21.2" alt="" />
+          <div class="ml-3 overflow-hidden">
+            <p class="text-sm font-medium text-slate-900">name</p>
+            <p class="truncate text-sm text-slate-500">person@email.com</p>
+          </div>
+        </li>
+        <li class="flex w-full flex-nowrap items-center border-2 border-blue-600 py-4 first:pt-0 last:pb-0">
+          <img class="h-10 w-10 shrink-0 rounded-full" src="https://ts2.tc.mm.bing.net/th/id/OADD2.1238050113893244_1SNKXKYVV5TH3BY?w=32&h=32&o=6&pid=21.2" alt="" />
+          <div class="ml-3 overflow-hidden">
+            <p class="text-sm font-medium text-slate-900">name</p>
+            <p class="truncate text-sm text-slate-500">person@email.com</p>
+          </div>
+        </li>
+      </ul>
+    </div>
+    <div class="hidden w-full flex-1 border-4 border-orange-400 sm:flex">内容区域</div>
+  </main>
+</div>
+
+
+</template>
+<script setup lang="ts">
+import logo from '@/assets/logo/32x32.svg';
+
+</script>

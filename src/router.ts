@@ -3,13 +3,12 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 import { pluginManager } from './core/plugin';
 import { routerManager } from './core/router';
-
+import BasicLayout from './layouts/BasicLayout.vue';
 const routes = [
   {
     path: '/',
     name: 'root',
-    redirect: '/message', // 默认跳转到消息插件
-    // component: () => import('@/components/tests/Chat.vue'),
+    component:BasicLayout,
     meta: { title: '消息' },
   },
   {
@@ -31,7 +30,7 @@ export const router = createRouter({
   // 可选：禁用滚动行为，避免刷新时滚动异常
   // scrollBehavior: () => ({ top: 0 })
   // 路由切换时滚动到顶部（适配移动端）
-  scrollBehavior: (to, from, savedPosition) => {
+  scrollBehavior: (_to, _from, savedPosition) => {
     return savedPosition || { top: 0 };
   },
 });
@@ -41,18 +40,20 @@ routerManager.setRouter(router);
 
 // 4. 预注册所有插件路由（解决刷新404问题）
 //  提前导入所有插件的路由配置，确保刷新时路由已存在
-import { messagePlugin } from '@/plugins/message';
-import { contactPlugin } from '@/plugins/contact'
+// import { messagePlugin } from '@/plugins/message';
+// import { contactPlugin } from '@/plugins/contact'
 // import { settingsPlugin } from '@/plugins/settings'
 // import { minePlugin } from '@/plugins/mine'
 // 批量预注册插件路由
 // const allPlugins = [messagePlugin, contactPlugin, settingsPlugin, minePlugin]
-const allPlugins = [messagePlugin,contactPlugin];
-allPlugins.forEach((plugin) => {
-  if (plugin.router) {
-    routerManager.preRegisterPluginRouter(plugin.meta.name, plugin.router);
-  }
-});
+// const allPlugins = [messagePlugin,contactPlugin];
+
+// const allPlugins = [];
+// allPlugins.forEach((plugin) => {
+//   if (plugin.router) {
+//     routerManager.preRegisterPluginRouter(plugin.meta.name, plugin.router);
+//   }
+// });
 
 // 路由守卫：插件激活/失活
 router.afterEach((to) => {

@@ -1,0 +1,49 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: rgb(147 51 234);
+  /* 默认紫色 */
+}
+
+html.red {
+  --color-primary: rgb(239 68 68);
+  /* 红色主题 */
+}
+
+html.blue {
+  --color-primary: rgb(59 130 246);
+  /* 蓝色主题 */
+}
+
+/* 定义全局 */
+/* @layer base {
+  * {
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
+  .scrollbar-hide {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-delay: 0s;
+  }
+} */

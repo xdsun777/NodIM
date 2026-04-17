@@ -7,7 +7,7 @@ import BasicLayout from './layouts/BasicLayout.vue';
 const routes = [
   {
     path: '/',
-    name: 'root',
+    name: 'basic-layout',
     component: BasicLayout,
     meta: { title: '消息' },
     children: []

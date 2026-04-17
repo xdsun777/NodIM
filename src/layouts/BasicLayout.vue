@@ -6,9 +6,8 @@
 
       <!-- 搜索框 -->
       <div class="relative mt-4 w-full">
-        <!-- 你提供的 FontAwesome 搜索图标（已居中） -->
-        <font-awesome-icon class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5" icon="fa-solid fa-magnifying-glass"
-          style="color: #9e9e9e;" />
+        <IconFont name="sousuo" class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 !text-[#9e9e9e]"></IconFont>
+
         <!-- 搜索输入框（左侧留空，文字垂直居中） -->
         <input
           class="w-full rounded-full bg-gray-100 pl-10 pr-4 py-2 border border-brand-300 focus:ring-2 focus:ring-primary/30 focus:border-primary focus:outline-none"

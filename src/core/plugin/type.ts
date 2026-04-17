@@ -26,6 +26,7 @@ export interface PluginHooks {
 export interface PluginRouter {
   routes: RouteRecordRaw[]; // 插件自有路由
   prefix?: string; // 路由前缀（如/message）
+  parentName?: string;
 }
 
 // 插件完整类型

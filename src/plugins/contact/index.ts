@@ -12,7 +12,7 @@ export const contactPlugin: AppPlugin = {
     name: 'contact',
     title: '联系人',
     icon: 'lianxiren',
-    order: 1,
+    order: 2,
   },
   router: contactRouter,
   hooks: {

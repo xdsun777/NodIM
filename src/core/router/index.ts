@@ -5,26 +5,56 @@ import type { PluginRouter } from '../plugin/type';
 export class RouterManager {
   private router: Router | null = null;
   private registeredPluginRoutes = new Set<string>();
+  private defaultParentName: string = 'basic-layout'; // 指定父路由名称
+
 
   setRouter(router: Router) {
     this.router = router;
     return this;
   }
+  // 可选：允许配置父路由名称
+  setDefaultParentName(name: string) {
+    this.defaultParentName = name;
+    return this;
+  }
+  setPluginRouterName(pluginName: string) {
+    return `plugin-${pluginName}-root`
+  }
+
+
 
   // 修改：支持嵌套结构的路由注册
   preRegisterPluginRouter(pluginName: string, pluginRouter: PluginRouter) {
-    if (!this.router) return;
-    if (this.registeredPluginRoutes.has(pluginName)) return;
+    if (!this.router) {
+      console.error('[RouterManager] Router 未初始化');
+      return;
+    }
+    if (this.registeredPluginRoutes.has(pluginName)) {
+      console.warn(`[RouterManager] 插件 ${pluginName} 的路由已注册，跳过`);
+      return;
+    }
+    const pluginRouterRootName = this.setPluginRouterName(pluginName);
 
-    const { routes, prefix = `/${pluginName}` } = pluginRouter;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { routes, prefix = `/${pluginName}`, parentName } = pluginRouter;
+    const targetParentName = parentName || this.defaultParentName;
+
+    // 验证父路由是否存在
+    const parentRoute = this.router.getRoutes().find(r => r.name === targetParentName);
+    if (!parentRoute) {
+      console.error(`[RouterManager] 父路由 "${targetParentName}" 不存在，插件 ${pluginName} 路由注册失败`);
+      return;
+    }
+
 
     // 1. 核心修改：创建一个插件根节点，将插件所有路由存入 children
     const pluginRootRoute: RouteRecordRaw = {
-      path: prefix,
-      name: `plugin-${pluginName}-root`,
+      path: pluginName,
+      name: pluginRouterRootName,
       // 默认尝试加载插件目录下的 Layout.vue 作为嵌套容器
       // 如果不存在，则使用一个简单的 router-view 占位
-      component: () => 
+      component: () =>
         import(`@/plugins/${pluginName}/pages/Layout.vue`).catch(() => ({
           name: 'PluginRootPlaceholder',
           render: () => h(resolveComponent('router-view'))
@@ -33,10 +63,10 @@ export class RouterManager {
     };
 
     // 2. 只需要 addRoute 一次，Vue Router 会自动递归处理 children
-    this.router.addRoute(pluginRootRoute);
-    
+    this.router.addRoute(targetParentName, pluginRootRoute);
+
     this.registeredPluginRoutes.add(pluginName);
-    console.log(`插件${pluginName}嵌套路由挂载成功`);
+    console.log(`✅ [RouterManager] 插件 ${pluginName} 路由已挂载到父路由 "${targetParentName}"`);
   }
 
   // 同步修改 registerPluginRouter 逻辑
@@ -49,6 +79,7 @@ export class RouterManager {
     if (!this.router) return;
     this.router.removeRoute(`plugin-${pluginName}-root`);
     this.registeredPluginRoutes.delete(pluginName);
+    console.log(`❌ [RouterManager] 插件 ${pluginName} 路由已移除`);
   }
 
   initAllPluginRoutes(plugins: Array<{ name: string; router?: PluginRouter }>) {

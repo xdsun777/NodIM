@@ -11,8 +11,8 @@ export const testPlugin: AppPlugin = {
   meta: {
     name: 'test',
     title: '测试',
-    icon: 'ceshi',
-    order: 1,
+    icon: 'wode',
+    order: 4,
   },
   router: messageRouter,
   hooks: {

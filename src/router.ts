@@ -8,8 +8,9 @@ const routes = [
   {
     path: '/',
     name: 'root',
-    component:BasicLayout,
+    component: BasicLayout,
     meta: { title: '消息' },
+    children: []
   },
   {
     path: '/404',

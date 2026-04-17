@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --color-primary: rgb(147 51 234);
+  --color-primary: #50328F;
   /* 默认紫色 */
 }
 
@@ -15,6 +15,25 @@ html.red {
 html.blue {
   --color-primary: rgb(59 130 246);
   /* 蓝色主题 */
+}
+
+@layer utilities {
+  .pt-safe {
+    padding-top: constant(safe-area-inset-top);
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: constant(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pl-safe {
+    padding-left: constant(safe-area-inset-left);
+    padding-left: env(safe-area-inset-left);
+  }
+  .pr-safe {
+    padding-right: constant(safe-area-inset-right);
+    padding-right: env(safe-area-inset-right);
+  }
 }
 
 /* 定义全局 */

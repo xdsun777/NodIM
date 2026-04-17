@@ -1,10 +1,11 @@
 /** @type {import('tailwindcss').Config} */
+
 module.exports = {
   content: ['./src/**/*.{html,js,ts,vue,css}'],
-    theme: {
+  theme: {
     extend: {
       colors: {
-        "brand-primary": "var(--color-primary)",
+        "primary": "var(--color-primary)",
         "default-font": "rgb(23 23 23)",
         "subtext-color": "rgb(115 115 115)",
         "neutral-border": "rgb(229 229 229)",

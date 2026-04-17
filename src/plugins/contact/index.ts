@@ -11,12 +11,13 @@ export const contactPlugin: AppPlugin = {
   meta: {
     name: 'contact',
     title: '联系人',
-    icon: 'i-heroicons-chat-bubble-oval-left-20-solid',
+    icon: 'lianxiren',
     order: 1,
   },
   router: contactRouter,
   hooks: {
     // 插件安装核心逻辑
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     install(app: App) {
       try {
         // 1. 注册插件路由

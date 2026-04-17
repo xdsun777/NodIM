@@ -22,13 +22,13 @@ export const contactRouter: PluginRouter = {
   routes: [
     {
       path: '/', // 最终路径：/message/
-      name: 'contact-session-list',
+      name: 'contact-index',
       component: SessionList,
       meta: { title: '联系人列表' },
     },
     {
-      path: '/chat/:sessionId', // 最终路径：/message/chat/:sessionId
-      name: 'contact-chat',
+      path: 'chat/:sessionId', // 最终路径：/message/chat/:sessionId
+      name: 'contact-detail',
       component: ChatPage,
       meta: { title: '联系人' },
     },

@@ -11,12 +11,13 @@ export const messagePlugin: AppPlugin = {
   meta: {
     name: 'message',
     title: '消息',
-    icon: 'i-heroicons-chat-bubble-oval-left-20-solid',
+    icon: 'xiaoxi',
     order: 1,
   },
   router: messageRouter,
   hooks: {
     // 插件安装核心逻辑
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     install(app: App) {
       try {
         // 1. 注册插件路由

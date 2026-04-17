@@ -11,13 +11,13 @@ export const messageRouter: PluginRouter = {
   routes: [
     {
       path: '/', // 最终路径：/message/
-      name: 'message-session-list',
+      name: 'message-index',
       component: SessionList,
       meta: { title: '消息列表' },
     },
     {
-      path: '/chat/:sessionId', // 最终路径：/message/chat/:sessionId
-      name: 'message-chat',
+      path: 'chat/:sessionId', // 最终路径：/message/chat/:sessionId
+      name: 'message-detail',
       component: ChatPage,
       meta: { title: '聊天' },
     },

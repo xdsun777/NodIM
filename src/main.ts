@@ -1,8 +1,16 @@
 // 全局样式
-import '@fortawesome/fontawesome-free/css/all.css';
 import '@fontsource/noto-sans-sc';
+// import { library } from '@fortawesome/fontawesome-svg-core'
+// import { fas } from '@fortawesome/free-solid-svg-icons'
+// import { far } from '@fortawesome/free-regular-svg-icons'
+// import { fab } from '@fortawesome/free-brands-svg-icons'
+// import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+// library.add(fas,far,fab)
 
-import '@/assets/base.css';
+import './assets/base.css';
+// import '@/assets/iconfont/iconfont.css'
+
+import IconFont from './components/common/IconFont.vue';
 
 // src/main.ts
 import { createApp } from 'vue';
@@ -15,12 +23,15 @@ import { pluginManager } from '@/core/plugin';
 import { eventBus } from '@/core/event';
 
 // 导入插件（关键：确保插件被注册）
-// import '@/plugins/message';
-// import '@/plugins/contact';
+import '@/plugins/message';
+import '@/plugins/contact';
 import '@/plugins/test';
 
 // 创建Vue实例
 const app = createApp(App);
+
+
+app.component('IconFont',IconFont)//.component('font-awesome-icon',FontAwesomeIcon)
 
 // 安装Pinia（状态管理） Vue Router
 const pinia = createPinia();

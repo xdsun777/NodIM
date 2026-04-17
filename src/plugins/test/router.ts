@@ -6,7 +6,7 @@ export const messageRouter: PluginRouter = {
   prefix: '/test',
   routes: [
     {
-      path: '', // 对应 /message (列表页)
+      path: '/', // test plugin-test-root
       name: 'test-index',
       component: () => import('./pages/index.vue'),
     },

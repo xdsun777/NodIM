@@ -1,0 +1,30 @@
+{
+  "id": "3243552",
+  "name": "NodIM",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "1831598",
+      "name": "联系人",
+      "font_class": "lianxiren1",
+      "unicode": "e647",
+      "unicode_decimal": 58951
+    },
+    {
+      "icon_id": "11450336",
+      "name": "comment",
+      "font_class": "xiaoxi",
+      "unicode": "e604",
+      "unicode_decimal": 58884
+    },
+    {
+      "icon_id": "6880576",
+      "name": "联系人",
+      "font_class": "lianxiren",
+      "unicode": "e61c",
+      "unicode_decimal": 58908
+    }
+  ]
+}

@@ -53,6 +53,7 @@ libp2p = { version = "0.52.4", features = [
     "mdns",
     "macros", 
 ] }
+tauri-plugin-clipboard-manager = "2"
 
 [build-dependencies]
 tauri-build = { version = "2.5.1", features = [] }

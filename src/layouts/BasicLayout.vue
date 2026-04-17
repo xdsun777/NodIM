@@ -27,16 +27,17 @@
 
     <!-- 第二列：会话列表（移动端、PC共用） -->
     <div class="scrollbar-hide flex-1 overflow-y-auto sm:max-w-xs border-r">
-      <!-- <ul class="divide-y p-2">
-        <li class="flex items-center gap-3 p-3">
-          <img class="h-10 w-10 rounded-full" :src="logo" />
-          <div class="overflow-hidden">
-            <p class="font-medium">name</p>
-            <p class="truncate text-sm text-gray-500">person@email.com</p>
-          </div>
-        </li>
-      </ul> -->
-      <RouterView></RouterView>
+      <RouterView>
+        <ul class="divide-y p-2">
+          <li class="flex items-center gap-3 p-3">
+            <img class="h-10 w-10 rounded-full" src="@/assets/logo/32x32.svg" />
+            <div class="overflow-hidden">
+              <p class="font-medium">name</p>
+              <p class="truncate text-sm text-gray-500">person@email.com</p>
+            </div>
+          </li>
+        </ul>
+      </RouterView>
     </div>
 
     <!-- PC端：内容显示区 -->

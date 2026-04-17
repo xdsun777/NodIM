@@ -9,18 +9,18 @@ import '@fontsource/noto-sans-sc';
 
 import './assets/base.css';
 // import '@/assets/iconfont/iconfont.css'
-
 import IconFont from './components/common/IconFont.vue';
+
 
 // src/main.ts
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 
+import { pluginManager } from '@/core/plugin';
+import { router } from '@/router';
+import { eventBus } from '@/core/event';
 import App from '@/App.vue';
 
-import { router } from '@/router';
-import { pluginManager } from '@/core/plugin';
-import { eventBus } from '@/core/event';
 
 // 导入插件（关键：确保插件被注册）
 import '@/plugins/message';

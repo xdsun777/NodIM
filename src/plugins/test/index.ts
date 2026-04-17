@@ -22,7 +22,7 @@ export const testPlugin: AppPlugin = {
       try {
         // 1. 注册插件路由
         routerManager.registerPluginRouter('test', messageRouter);
-
+        
         // 2. 监听全局事件（示例：监听新消息事件）
         eventBus.on(
           'test:new',

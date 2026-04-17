@@ -2,9 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 默认紫色 */
 :root {
-  --color-primary: #50328F;
-  /* 默认紫色 */
+  /* 控制活动色 */
+  --color-primary: #50328f;
+  /* 控制次要活动色 */
+  --color-primary-second: #d9d6e0d3;
+  /* 控制背景色 */
+  --color-bg: #ffffff;
+  /* 控制次要背景色 */
+  --color-bg-second: #ffffffa2;
+  /* 控制文字颜色 */
+  --color-text: #060000c7;
+  /* 控制次要文字颜色 */
+  --color-text-second: #3a3e458c;
+
 }
 
 html.red {
@@ -22,14 +34,17 @@ html.blue {
     padding-top: constant(safe-area-inset-top);
     padding-top: env(safe-area-inset-top);
   }
+
   .pb-safe {
     padding-bottom: constant(safe-area-inset-bottom);
     padding-bottom: env(safe-area-inset-bottom);
   }
+
   .pl-safe {
     padding-left: constant(safe-area-inset-left);
     padding-left: env(safe-area-inset-left);
   }
+
   .pr-safe {
     padding-right: constant(safe-area-inset-right);
     padding-right: env(safe-area-inset-right);

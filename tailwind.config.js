@@ -5,7 +5,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        "primary": "var(--color-primary)",
+        primary: 'var(--color-primary)', // 控制活动色
+        'primary-second': 'var(--color-primary-second)',
+        'bg-primary': 'var(--color-bg)', // 控制背景颜色
+        'bg-primary-second': 'var(--color-bg-second)',
+        'text-primary': 'var(--color-text)', //控制字体颜色
+        'text-primary-second': 'var(--color-text-second)',
         "default-font": "rgb(23 23 23)",
         "subtext-color": "rgb(115 115 115)",
         "neutral-border": "rgb(229 229 229)",

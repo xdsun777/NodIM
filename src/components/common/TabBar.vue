@@ -1,9 +1,9 @@
 <!-- src/components/common/TabBar.vue -->
 <template>
-  <nav
-    class="fixed right-0 bottom-0 left-0 border-t border-gray-200 bg-white px-4 py-2 md:static md:flex md:h-full md:w-24 md:flex-col md:items-center md:justify-start md:border-t-0 md:border-r"
+  <!-- <nav
+    class="fixed right-0 bottom-0 left-0 border-t border-gray-200 bg-white px-4 py-2 sm:static sm:flex sm:h-full sm:w-24 sm:flex-col sm:items-center sm:justify-start sm:border-t-0 sm:border-r"
     id="main-nav">
-    <div class="flex justify-around md:flex-col md:space-y-8 md:pt-6">
+    <div class="flex justify-around sm:flex-col sm:space-y-8 sm:pt-6">
       <button v-for="plugin in pluginList" :key="plugin.name" class="flex flex-col items-center py-2" :class="{
         'opacity-60': !isActive(plugin.name),
         'opacity-100': isActive(plugin.name),
@@ -16,6 +16,22 @@
         }"></div>
       </button>
     </div>
+  </nav> -->
+
+  <nav class="p-0.5 fixed bottom-4 left-1/2 -translate-x-1/2
+           w-[70vw]
+           flex items-center
+           rounded-full
+           border-2 border-primary bg-white
+            sm:hidden shadow-lg ">
+    <button v-for="plugin in pluginList" :key="plugin.name" :class="{
+      'text-[#50328f]': !isActive(plugin.name),
+      'bg-[#50328f] text-white': isActive(plugin.name),
+    }" @click="handleTabClick(plugin.name)"
+      class="flex-1  flex flex-col items-center justify-center gap-1 rounded-full transition-all">
+      <IconFont :name="plugin.icon" class="!text-md font-[1000]" />
+      <span class="text-xs font-medium">{{ plugin.title }}</span>
+    </button>
   </nav>
 </template>
 
@@ -25,7 +41,6 @@ import { computed, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { pluginManager } from "@/core/plugin";
 import type { PluginMeta } from "@/core/plugin/type";
-
 interface Props {
   plugins?: PluginMeta[];
   visible?: boolean;
@@ -66,26 +81,3 @@ watch(
   { immediate: true }
 );
 </script>
-
-<style scoped>
-:root {
-  --tabbar-active-color: v-bind(activeColor);
-}
-
-.bg-primary {
-  background-color: var(--tabbar-active-color);
-}
-
-button.opacity-100 .icon,
-button.opacity-100 span {
-  color: var(--tabbar-active-color);
-}
-
-button.opacity-60 {
-  cursor: pointer;
-}
-
-button.opacity-60:hover {
-  opacity: 0.8;
-}
-</style>

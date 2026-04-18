@@ -55,7 +55,7 @@ export class RouterManager {
       // 默认尝试加载插件目录下的 Layout.vue 作为嵌套容器
       // 如果不存在，则使用一个简单的 router-view 占位
       component: () =>
-        import(`@/plugins/${pluginName}/pages/Layout.vue`).catch(() => ({
+        import(`@/plugins/${pluginName}/pages/LayoutView.vue`).catch(() => ({
           name: 'PluginRootPlaceholder',
           render: () => h(resolveComponent('router-view'))
         })),

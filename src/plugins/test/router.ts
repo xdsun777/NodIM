@@ -8,12 +8,12 @@ export const messageRouter: PluginRouter = {
     {
       path: '/', // test plugin-test-root
       name: 'test-index',
-      component: () => import('./pages/index.vue'),
+      component: () => import('./pages/indexPage.vue'),
     },
     {
       path: 'chat/:id', // 对应 /message/chat/:id (详情页)
       name: 'test-detail',
-      component: () => import('./pages/detail.vue'),
+      component: () => import('./pages/detailPage.vue'),
     }
   ]
 };

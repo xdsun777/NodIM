@@ -4,14 +4,14 @@
            w-[70vw]
            flex items-center
            rounded-full
-           border-2 border-primary bg-white
+           border-2 border-primary bg-bg-primary
             sm:hidden shadow-lg ">
     <button v-for="plugin in pluginList" :key="plugin.name" :class="{
-      'text-[#50328f]': !isActive(plugin.name),
-      'bg-[#50328f] text-white': isActive(plugin.name),
+      'text-primary': !isActive(plugin.name),
+      'bg-primary text-white': isActive(plugin.name),
     }" @click="handleTabClick(plugin.name)"
       class="flex-1  flex flex-col items-center justify-center gap-0.5 rounded-full transition-all">
-      <IconFont :name="plugin.icon" class="!text-md font-[1000]" />
+      <IconFont :name="plugin.icon" class="text-md font-[1000]" />
       <span class="text-xs font-medium">{{ plugin.title }}</span>
     </button>
   </nav>

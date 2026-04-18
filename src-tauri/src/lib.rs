@@ -51,7 +51,11 @@ impl Codec for ChatCodec {
     type Response = ChatResponse;
 
     // 严格照搬libp2p官方签名，无额外约束，解决生命周期错误
-    async fn read_request<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Request>
+    async fn read_request<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Request>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -60,7 +64,11 @@ impl Codec for ChatCodec {
         Ok(ChatRequest(buf))
     }
 
-    async fn read_response<T>(&mut self, _: &Self::Protocol, io: &mut T) -> std::io::Result<Self::Response>
+    async fn read_response<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+    ) -> std::io::Result<Self::Response>
     where
         T: AsyncRead + Unpin + Send,
     {
@@ -69,14 +77,24 @@ impl Codec for ChatCodec {
         Ok(ChatResponse(buf))
     }
 
-    async fn write_request<T>(&mut self, _: &Self::Protocol, io: &mut T, ChatRequest(data): ChatRequest) -> std::io::Result<()>
+    async fn write_request<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        ChatRequest(data): ChatRequest,
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
         io.write_all(&data).await
     }
 
-    async fn write_response<T>(&mut self, _: &Self::Protocol, io: &mut T, ChatResponse(data): ChatResponse) -> std::io::Result<()>
+    async fn write_response<T>(
+        &mut self,
+        _: &Self::Protocol,
+        io: &mut T,
+        ChatResponse(data): ChatResponse,
+    ) -> std::io::Result<()>
     where
         T: AsyncWrite + Unpin + Send,
     {
@@ -279,7 +297,8 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         let mut gossipsub = Gossipsub::new(
             MessageAuthenticity::Signed(id_keys.clone()),
             gossipsub_config,
-        ).unwrap();
+        )
+        .unwrap();
         let topic = IdentTopic::new("chat");
         gossipsub.subscribe(&topic).unwrap();
 
@@ -293,11 +312,18 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         );
 
         // 组合行为
-        let behaviour = ChatBehaviour { gossipsub, mdns, req_res };
+        let behaviour = ChatBehaviour {
+            gossipsub,
+            mdns,
+            req_res,
+        };
 
         // 创建Swarm
         let mut swarm = Swarm::new(
-            transport, behaviour, peer_id, SwarmConfig::with_tokio_executor()
+            transport,
+            behaviour,
+            peer_id,
+            SwarmConfig::with_tokio_executor(),
         );
         let _ = swarm.listen_on("/ip4/0.0.0.0/tcp/0".parse::<Multiaddr>().unwrap());
 
@@ -307,6 +333,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
         // 启动Tauri
         tauri::Builder::default()
+            .plugin(tauri_plugin_os::init())
             .invoke_handler(tauri::generate_handler![
                 get_local_peer_id,
                 get_discovered_peers,

@@ -1,6 +1,6 @@
-// src/plugins/message/stores/message.ts
+// src/plugins/test/stores/index.ts
 import { defineStore } from 'pinia';
-
+// import { openDB } from 'idb'
 // 定义消息类型
 export interface MessageItem {
   id: string;
@@ -163,4 +163,21 @@ export const useMessageStore = defineStore('message', {
       }, 500);
     },
   },
+  persist: {
+    debug: true,
+    // storage: indexedDB
+    // storage: {
+    //   getItem: async (key: string) => {
+    //     // 使用 IndexedDB 获取数据
+    //     const db = await openDB('myDB', 1);
+    //     return db.get('store', key);
+    //   },
+    //   setItem: async (key: string, value: string) => {
+    //     // 使用 IndexedDB 存储数据
+    //     const db = await openDB('myDB', 1);
+    //     await db.put('store', value, key);
+    //   },
+    // },
+  },
 });
+

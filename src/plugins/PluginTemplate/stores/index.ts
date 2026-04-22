@@ -19,7 +19,7 @@ export interface SessionItem {
   unread?: number;
 }
 
-export const useMessageStore = defineStore('test', {
+export const useMessageStore = defineStore('templatePlugin', {
   state: () => ({
     // 会话列表（初始化为空数组，避免 undefined）
     sessionList: [] as SessionItem[],

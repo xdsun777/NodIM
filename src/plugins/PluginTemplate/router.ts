@@ -3,11 +3,11 @@ import type { PluginRouter } from '@/core/plugin/type';
 
 
 export const messageRouter: PluginRouter = {
-  prefix: '/message',
+  prefix: '/template',
   routes: [
     {
       path: '/', // test plugin-test-root
-      name: 'message-index',
+      name: 'template-index',
       component: () => import('./pages/indexPage.vue'),
     },
   ]

@@ -13,6 +13,12 @@ export const contactPlugin: AppPlugin = {
     title: '联系人',
     icon: 'lianxiren',
     order: 2,
+    headerData: {
+      leftIcon: 'logo',
+      title: '联系人',
+      rightIcon: '',
+      search:null
+    }
   },
   router: contactRouter,
   hooks: {

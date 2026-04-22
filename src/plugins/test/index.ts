@@ -13,6 +13,12 @@ export const testPlugin: AppPlugin = {
     title: '测试',
     icon: 'wode',
     order: 4,
+    headerData: {
+      leftIcon: 'logo',
+      title: '测试',
+      rightIcon: 'ceshi',
+      search:null
+    }
   },
   router: messageRouter,
   hooks: {

@@ -7,16 +7,16 @@ import { eventBus } from '@/core/event';
 import { messageRouter } from './router';
 
 // 插件核心定义
-export const messagePlugin: AppPlugin = {
+export const TemplatePlugin: AppPlugin = {
   meta: {
-    name: 'message',
-    title: '消息',
-    icon: 'xiaoxi',
-    order: 1,
+    name: 'template',
+    title: '测试',
+    icon: 'ceshi',
+    order: 4,
     headerData: {
       leftIcon: 'logo',
-      title: 'NodIM',
-      rightIcon: 'saoyisao',
+      title: '插件模板',
+      rightIcon: '测试',
       search:null
     }
   },
@@ -31,7 +31,7 @@ export const messagePlugin: AppPlugin = {
         
         // 2. 监听全局事件（示例：监听新消息事件）
         eventBus.on(
-          'message:new',
+          'test:new',
           (msg: { content: string; sessionId: string }) => {
             console.log('收到新消息：', msg);
             // 可在此处实现消息推送逻辑
@@ -42,16 +42,16 @@ export const messagePlugin: AppPlugin = {
         // app.component('MessageBubble', () => import('./components/MessageBubble.vue'));
         // app.component('MessageInput', () => import('./components/MessageInput.vue'));
 
-        console.log('✅ message插件安装成功');
+        console.log('✅ test插件安装成功');
       } catch (error) {
-        console.error('❌ message插件安装失败：', error);
+        console.error('❌ test插件安装失败：', error);
         throw error; // 抛出错误，让插件管理器感知
       }
     },
     // 插件激活时执行
     activate() {
-      console.log('📢 message插件已激活');
-      eventBus.emit('message:activate');
+      console.log('📢 test插件已激活');
+      eventBus.emit('test:activate');
 
       // 激活时初始化会话列表
       import('./stores').then(({ useMessageStore }) => {
@@ -63,7 +63,7 @@ export const messagePlugin: AppPlugin = {
     },
     // 插件失活时执行
     deactivate() {
-      console.log('📴 message插件已失活');
+      console.log('📴 test插件已失活');
       eventBus.emit('message:deactivate');
     },
   },
@@ -72,4 +72,4 @@ export const messagePlugin: AppPlugin = {
 };
 
 // 注册到插件管理器（确保在main.ts执行前注册）
-pluginManager.register(messagePlugin);
+pluginManager.register(TemplatePlugin);

@@ -10,10 +10,10 @@ export const messageRouter: PluginRouter = {
       name: 'test-index',
       component: () => import('./pages/indexPage.vue'),
     },
-    {
-      path: 'chat/:id', // 对应 /message/chat/:id (详情页)
-      name: 'test-detail',
-      component: () => import('./pages/detailPage.vue'),
-    }
+    // {
+    //   path: 'chat/:id', // 对应 /message/chat/:id (详情页)
+    //   name: 'test-detail',
+    //   component: () => import('./pages/detailPage.vue'),
+    // }
   ]
 };

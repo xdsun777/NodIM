@@ -2,16 +2,17 @@
     <header class="flex flex-col gap-2 p-4 sm:hidden pt-safe">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <img :src="logoSvg" class="h-8 w-8" />
-                <h1 class="text-xl font-bold">Nodim</h1>
+                <slot  name="rightIcon"></slot>
+                <h1 v-if="!$slots.title" class="text-xl font-bold">Nodim</h1>
+                <slot v-else name="title"></slot>
             </div>
-            <IconFont name="saoyisao" class="h-6 w-6 font-[1000] text-primary"></IconFont>
+
+            <slot v-if="$slots.leftIcon" name="leftIcon"></slot>
         </div>
-        <!-- 搜索框：我帮你改成了【带左侧图标的居中结构】 -->
-        <SearchMobile></SearchMobile>
+        <slot v-if="$slots.search" name="search"></slot>
     </header>
+
 </template>
 <script setup lang="ts">
-import SearchMobile from '@/components/common/Search/SearchMobile.vue';
-import logoSvg from '@/assets/logo/32x32.svg';
+
 </script>

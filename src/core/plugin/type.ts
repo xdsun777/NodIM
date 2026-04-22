@@ -1,13 +1,21 @@
 // src/core/plugin/type.ts
 import type { App } from 'vue';
+import type { Component } from 'vue'
 import type { RouteRecordRaw } from 'vue-router';
 
+interface HeaderData {
+  leftIcon: string
+  title: string
+  rightIcon: string
+  search: Component | null
+}
 // 插件元信息
 export interface PluginMeta {
   name: string; // 插件唯一标识（如message/contact）
   title: string; // 插件名称
-  icon?: string; // 插件图标
+  icon: string; // 插件图标
   order?: number; // 插件排序
+  headerData: HeaderData
 }
 
 // 插件生命周期钩子

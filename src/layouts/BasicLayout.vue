@@ -1,7 +1,8 @@
 <template>
   <div class="flex h-screen flex-col overflow-hidden sm:flex-row">
     <!-- PC端：Header + Search + TabBar 位于第一列 -->
-    <div v-if="$systemInfo.platform == 'test' || $systemInfo.isDesktop" class="hidden sm:flex sm:w-auto sm:flex-col border-r p-4">
+    <div v-if="$systemInfo.platform == 'test' || $systemInfo.isDesktop"
+      class="hidden sm:flex sm:w-auto sm:flex-col border-r p-4">
       <HeaderPc></HeaderPc>
 
       <!-- 搜索框 -->
@@ -16,52 +17,38 @@
 
       <!-- 导航栏（对应移动端底部导航） -->
       <TabBarPC></TabBarPC>
-      <!-- <div class="mt-6 flex flex-col gap-4">
-        <button>消息</button>
-        <button>联系人</button>
-        <button>我的</button>
-      </div> -->
     </div>
 
     <!-- 移动端 Header -->
-    <HeaderMobile v-if="$systemInfo.platform=='test' || $systemInfo.isMobile" ></HeaderMobile>
+    <HeaderMobile v-if="$systemInfo.platform == 'test' || $systemInfo.isMobile">
+
+      <template v-slot:rightIcon>
+        <IconFont :name="headerConfig.leftIcon" class="h-6 w-6 font-[1000] text-primary" />
+      </template>
+
+      <template v-slot:title>
+        <h1 class="text-xl font-bold">{{ headerConfig.title }}</h1>
+      </template>
+
+      <template v-slot:leftIcon>
+        <IconFont :name="headerConfig.rightIcon" class="h-6 w-6 font-[1000] text-primary" />
+      </template>
+
+      <template v-slot:search>
+        <component :is="headerConfig.search" />
+      </template>
+    </HeaderMobile>
 
     <!-- 第二列：会话列表（移动端、PC共用） -->
     <div class="scrollbar-hide w-full overflow-y-auto border-r sm:w-auto sm:min-w-[280px] sm:max-w-sm">
       <RouterView></RouterView>
-        <!-- <ul class="divide-y p-2">
-          <li class="flex items-center gap-3 p-3">
-            <img class="h-10 w-10 rounded-full" src="@/assets/logo/32x32.svg" />
-            <div class="overflow-hidden">
-              <p class="font-medium">name</p>
-              <p class="truncate text-sm text-text-primary-second">person@email.com</p>
-            </div>
-          </li>
-          <li class="flex items-center gap-3 p-3">
-            <img class="h-10 w-10 rounded-full" src="@/assets/logo/32x32.svg" />
-            <div class="overflow-hidden">
-              <p class="font-medium">name</p>
-              <p class="truncate text-sm text-text-primary-second">person@email.com</p>
-            </div>
-          </li>
-        </ul>
-        什么平台：{{ $systemInfo.isMobile}}-----{{ $systemInfo.platform }} -->
-      
     </div>
-    <!-- <div class="scrollbar-hide flex-1 overflow-y-auto sm:max-w-xs border-r">
-      <RouterView>
-        <ul class="divide-y p-2">
-          <li class="flex items-center gap-3 p-3">
-            <img class="h-10 w-10 rounded-full" src="@/assets/logo/32x32.svg" />
-            <div class="overflow-hidden">
-              <p class="font-medium">name</p>
-              <p class="truncate text-sm text-text-primary-second">person@email.com</p>
-            </div>
-          </li>
-        </ul>
-        什么平台：{{ $systemInfo.isMobile }}
-      </RouterView>
-    </div> -->
+
+    <Transition name="chat-drawer">
+      <div v-if="$route.name === 'test-detail'" class="chat-drawer-container">
+        <router-view :key="$route.fullPath" />
+      </div>
+    </Transition>
 
     <!-- PC端：内容显示区 -->
     <div class="hidden flex-1 items-center justify-center sm:flex">
@@ -69,7 +56,7 @@
     </div>
 
     <!-- 移动端：底部导航 -->
-    <TabBar></TabBar>
+    <TabBar @tab-change="onTabChange" />
   </div>
 
 
@@ -80,6 +67,85 @@ import HeaderPc from '@/components/common/Header/HeaderPc.vue';
 
 import TabBar from '@/components/common/TabBar.vue';
 import TabBarPC from '@/components/common/TabBarPC.vue';
+import SearchMobile from '@/components/common/Search/SearchMobile.vue'
+import type { PluginMeta } from '@/core/plugin/type'
+import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { pluginManager } from '@/core/plugin'
 
+const router = useRouter()
 
+// 👇 默认激活 test 插件
+onMounted(() => {
+  // 跳转到测试页面
+  router.replace('/test')
+  // 激活插件
+  pluginManager.activate('test')
+  const pluginMeta = pluginManager.getPluginMeta('test')
+  if (pluginMeta != null) {
+    onTabChange(pluginMeta)
+  }
+
+})
+
+import { ref, markRaw } from 'vue'
+import type { Component } from 'vue'
+interface HeaderData {
+  leftIcon: string
+  title: string
+  rightIcon: string
+  search: Component
+}
+const headerConfig = ref<HeaderData>({
+  leftIcon: 'logo',
+  title: 'Nodim',
+  rightIcon: 'saoyisao',
+  search: markRaw(SearchMobile), // 👈 use markRaw to avoid making the component reactive
+})
+// 监听 TabBar 点击
+const onTabChange = (plugin: PluginMeta) => {
+  console.log('当前切换插件：', plugin)
+
+  // ——————————————————
+  // 在这里动态改头部！
+  // ——————————————————
+  headerConfig.value.title = plugin.headerData.title // 标题 = 插件名称
+  headerConfig.value.leftIcon = plugin.headerData.leftIcon // 图标 = 插件图标
+  headerConfig.value.rightIcon = plugin.headerData.rightIcon
+  if (plugin.headerData.search != null) {
+    headerConfig.value.search = markRaw(plugin.headerData.search)
+  }
+}
 </script>
+<style>
+/* ========== Tailwind 原生自定义动画 1:1复刻Telegram动画 ========== */
+/* 入场：从右侧滑入 */
+.chat-drawer-enter-from {
+  transform: translateX(100%);
+  opacity: 0;
+}
+
+.chat-drawer-enter-active {
+  transition: all 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.chat-drawer-enter-to {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* 退场（返回）：向右滑出收缩消失 就是你截图里的效果！ */
+.chat-drawer-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.chat-drawer-leave-active {
+  transition: all 0.35s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.chat-drawer-leave-to {
+  transform: translateX(100%);
+  opacity: 0;
+}
+</style>

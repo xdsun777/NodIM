@@ -614,3 +614,57 @@ pull
 |                  | Connection Gating                         | 连接防火墙         | 允许 / 拒绝特定节点、地址、协议的连接                        |
 | **消息与可靠性** | Message Ordering & Reliability            | 流级可靠保证       | 基于流的有序可靠传输，类似 TCP 语义                          |
 | **网络监测**     | Metrics & Observability                   | 监控与可观测性     | 连接数、流数、流量、延迟、错误率                             |
+
+
+
+
+
+
+需求总结
+目标：开发一个局域网内的 P2P 工具，具有以下功能：
+
+自动发现局域网内其他客户端（通过 mDNS）。
+
+群聊（广播消息，使用 Gossipsub）。
+
+私聊（一对一消息，使用 Request-Response）。
+
+文件传输（发送图片、文本、视频文件等，支持分块传输）。
+
+技术栈：
+
+后端：Rust + libp2p（版本 0.54.x）。
+
+前端：Tauri（桌面应用框架），使用 JavaScript/TypeScript 构建 UI。
+
+错误处理：
+
+p2plib（独立的 P2P 通信库）使用 thiserror。
+
+Tauri 命令模块使用 anyhow。
+
+通信模型：
+
+Tauri 前端通过 Tauri 命令（invoke）触发操作。
+
+命令模块将请求转换为 P2pCommand 枚举，通过通道发送给后台运行的 P2P 节点任务。
+
+P2P 节点任务产生 P2pEvent 事件，通过另一个通道发送给 Tauri 主循环，再由 app.emit 转发到前端。
+
+代码组织：
+
+p2p 模块：独立库，包含所有 libp2p 相关逻辑，导出 P2PNode、P2pCommand、P2pEvent 等。
+
+commands 模块：Tauri 命令函数，调用 P2PNode 的方法。
+
+lib.rs（移动端入口）和 main.rs（桌面端入口）：只负责初始化 Tauri 应用，设置状态，启动 P2P 节点任务，并转发事件到前端。
+
+测试：提供独立的命令行测试程序，不依赖 Tauri，用于验证 p2plib 功能。
+
+当前状态：
+
+你希望我一步一步从头指导，不要一次性给出完整代码。
+
+先确认需求，然后逐步实现每个模块，每步完成后可验证。
+
+请确认以上总结是否准确，是否有遗漏或需要调整的地方？确认后，我们将从第一步：搭建项目结构，定义 p2plib 的错误类型和事件枚举开始。

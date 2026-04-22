@@ -13,6 +13,14 @@ const routes = [
     children: []
   },
   {
+    path: '/chat/:id',
+    name: 'global-chat',
+    component: () => import('@/plugins/test/pages/detailPage.vue'),
+    meta: {
+      fullScreen: true, // 告诉布局不要渲染 header / footer
+    },
+  },
+  {
     path: '/404',
     name: '404',
     component: () => import('@/components/common/NotFound.vue'),
@@ -48,7 +56,7 @@ import { contactPlugin } from '@/plugins/contact'
 // import { minePlugin } from '@/plugins/mine'
 // 批量预注册插件路由
 // const allPlugins = [messagePlugin, contactPlugin, settingsPlugin, minePlugin]
-const allPlugins = [testPlugin,messagePlugin,contactPlugin];
+const allPlugins = [testPlugin, messagePlugin, contactPlugin];
 
 // const allPlugins = [];
 allPlugins.forEach((plugin) => {

@@ -51,6 +51,19 @@ html.blue {
   }
 }
 
+/* 聊天详情全局悬浮抽屉 基础样式 */
+.chat-drawer-container {
+  /* 固定全屏，覆盖整个屏幕 */
+  position: fixed;
+  inset: 0;
+  /* 全局最高层级，覆盖所有页面、底部导航、所有布局 */
+  z-index: 999;
+  /* 黑色背景遮罩，和你截图深色背景完全一致 */
+  background-color: rgba(0, 0, 0, 0.92);
+  /* 页面自身内部滚动 */
+  overflow: hidden;
+}
+
 /* 定义全局 */
 /* @layer base {
   * {

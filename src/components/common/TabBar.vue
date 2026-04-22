@@ -48,9 +48,20 @@ const pluginList = computed<PluginMeta[]>(() => {
 
 const isActive = (pluginName: string) => route.path.startsWith(`/${pluginName}`);
 
+// 定义抛出事件
+const emit = defineEmits<{
+  tabChange: [plugin: PluginMeta] // 抛出当前切换的插件信息
+}>()
+
 const handleTabClick = (pluginName: string) => {
   router.push(`/${pluginName}`);
   pluginManager.activate(pluginName);
+
+  // 找到当前点击的 plugin 并抛出事件
+  const currentPlugin = pluginList.value.find(p => p.name === pluginName)
+  if (currentPlugin) {
+    emit('tabChange', currentPlugin) // 👈 关键！
+  }
 };
 
 watch(
@@ -62,4 +73,7 @@ watch(
   },
   { immediate: true }
 );
+
+
+
 </script>

@@ -10,12 +10,13 @@ import IconFont from './components/common/IconFont.vue';
 // src/main.ts
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
 import { pluginManager } from '@/core/plugin';
 import { router } from '@/router';
 import { eventBus } from '@/core/event';
-import App from '@/App.vue';
 
+import App from '@/App.vue';
 import { useSystemInfoStore } from '@/stores/systemInfo';
 
 
@@ -33,6 +34,9 @@ app.component('IconFont',IconFont)//.component('font-awesome-icon',FontAwesomeIc
 
 // 安装Pinia（状态管理） Vue Router
 const pinia = createPinia();
+pinia.use(piniaPluginPersistedstate)
+
+
 app.use(pinia).use(router);
 
 // 将Vue实例关联到插件管理器

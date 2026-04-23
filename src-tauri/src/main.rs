@@ -1,6 +1,7 @@
-// Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::error::Error;
-fn main() -> Result<(), Box<dyn Error>> {
-    nodim::run()
+fn main() {
+    // 请将 `nodim` 替换为 Cargo.toml 中定义的 crate 名称
+    if let Err(e) = nodim::run() {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
 }

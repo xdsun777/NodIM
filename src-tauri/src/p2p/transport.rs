@@ -1,29 +1,19 @@
-use anyhow::Result;
-use libp2p::{PeerId, request_response::RequestResponseMessage};
-use crate::p2p::node::SWARM;
+use libp2p::{
+    core::{muxing::StreamMuxerBox, upgrade, Transport},
+    identity, noise, tcp, yamux, PeerId,
+};
 
-// ====================== 补全缺失的 send() 函数 ======================
-pub async fn send(peer_id: String, data: Vec<u8>) -> Result<Vec<u8>> {
-    let peer_id = PeerId::parse(&peer_id)?;
-    let mut swarm = SWARM.write().await;
-    let swarm = swarm.as_mut().unwrap();
+pub fn build_transport(
+    keypair: &identity::Keypair,
+) -> std::io::Result<libp2p::core::transport::Boxed<(PeerId, StreamMuxerBox)>> {
+    // 将 noise::Error 映射为 std::io::Error
+    let noise_config = noise::Config::new(keypair)
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
-    // 发送请求
-    let request_id = swarm.behaviour_mut().req_res.send_request(&peer_id, data);
-
-    // 等待响应
-    while let Some(event) = swarm.select_next_some().await.into() {
-        if let libp2p::swarm::SwarmEvent::Behaviour(behaviour_event) = event {
-            if let crate::p2p::node::NodeBehaviourEvent::ReqRes(res_event) = behaviour_event {
-                if let libp2p::request_response::RequestResponseEvent::Message {
-                    message: RequestResponseMessage::Response { response, .. },
-                    ..
-                } = res_event {
-                    return Ok(response);
-                }
-            }
-        }
-    }
-
-    Err(anyhow::anyhow!("发送失败，未收到响应"))
+    let transport = tcp::tokio::Transport::new(tcp::Config::default())
+        .upgrade(upgrade::Version::V1)
+        .authenticate(noise_config)
+        .multiplex(yamux::Config::default())
+        .boxed();
+    Ok(transport)
 }

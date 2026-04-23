@@ -1,87 +1,73 @@
-use p2plib::{P2PNode, P2pCommand, P2pEvent};
-use tokio::sync::mpsc;
-use std::io::{self, BufRead};
+// examples/cli.rs
+// 运行方式：在 src-tauri 目录下执行 `cargo run --example cli`
+
+use nodim::p2p::{Node, NodeEvent, PeerId};
+use std::str::FromStr;
+use tokio::io::{self, AsyncBufReadExt, BufReader};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Starting P2P node...");
-    let (node, mut event_rx) = P2PNode::start().await?;
+    // 创建并启动 P2P 节点
+    let node = Node::new().await?;
+    println!("Local Peer ID: {}", node.local_peer_id());
 
-    // 获取本地 PeerId
-    let (tx, rx) = tokio::sync::oneshot::channel();
-    node.send_command(P2pCommand::GetLocalPeerId(tx)).await?;
-    let local_peer_id = rx.await?;
-    println!("Local Peer ID: {}", local_peer_id);
-
-    // 启动事件打印任务
+    // 订阅网络事件，在后台任务中实时打印
+    let mut event_rx = node.subscribe_events();
     tokio::spawn(async move {
-        while let Some(event) = event_rx.recv().await {
+        while let Ok(event) = event_rx.recv().await {
             match event {
-                P2pEvent::PeersChanged(peers) => {
-                    println!("[Peers] {}", peers.join(", "));
+                NodeEvent::NewListenAddr(addr) => {
+                    println!("[Event] Listening on {}", addr);
                 }
-                P2pEvent::BroadcastMessage(peer, msg) => {
-                    println!("[Broadcast] from {}: {}", peer, msg);
+                NodeEvent::PeerDiscovered(peer) => {
+                    println!("[Event] Discovered peer: {}", peer);
                 }
-                P2pEvent::PrivateMessage(peer, msg) => {
-                    println!("[Private] from {}: {}", peer, msg);
+                NodeEvent::BroadcastMessage { from, data } => {
+                    let msg = String::from_utf8_lossy(&data);
+                    println!("[Broadcast] from {}: {}", from, msg);
                 }
-                P2pEvent::FileProgress(peer, session, cur, total) => {
-                    println!("[File Progress] from {} session {}: {}/{}", peer, session, cur, total);
-                }
-                P2pEvent::FileReceived(peer, name, path) => {
-                    println!("[File Received] from {}: {} saved at {}", peer, name, path);
+                NodeEvent::PrivateMessage { from, data } => {
+                    let msg = String::from_utf8_lossy(&data);
+                    println!("[Private] from {}: {}", from, msg);
                 }
             }
         }
     });
 
     // 命令行交互
-    let stdin = io::stdin();
-    let mut lines = stdin.lock().lines();
+    let stdin = BufReader::new(io::stdin());
+    let mut lines = stdin.lines();
     println!("Commands:");
-    println!("  /broadcast <msg>");
-    println!("  /private <peer_id> <msg>");
-    println!("  /sendfile <peer_id> <file_path>");
-    println!("  /peers");
-    println!("  /exit");
+    println!("  list                      - List discovered peers");
+    println!("  broadcast <message>       - Send broadcast message");
+    println!("  private <peer_id> <msg>   - Send private message");
+    println!("  quit                      - Exit");
 
-    while let Some(Ok(line)) = lines.next() {
-        let line = line.trim();
-        if line == "/exit" {
-            break;
-        } else if line == "/peers" {
-            let (tx, rx) = tokio::sync::oneshot::channel();
-            node.send_command(P2pCommand::GetPeers(tx)).await?;
-            let peers = rx.await?;
-            println!("Peers: {:?}", peers);
-        } else if let Some(msg) = line.strip_prefix("/broadcast ") {
-            node.send_command(P2pCommand::SendBroadcast(msg.to_string())).await?;
-            println!("Broadcast sent");
-        } else if let Some(rest) = line.strip_prefix("/private ") {
-            let parts: Vec<&str> = rest.splitn(2, ' ').collect();
-            if parts.len() == 2 {
-                let peer_id = parts[0].to_string();
-                let msg = parts[1].to_string();
-                node.send_command(P2pCommand::SendPrivate(peer_id, msg)).await?;
-                println!("Private message sent");
-            } else {
-                println!("Usage: /private <peer_id> <msg>");
+    while let Some(line) = lines.next_line().await? {
+        let parts: Vec<&str> = line.splitn(3, ' ').collect();
+        match parts.as_slice() {
+            ["list"] => {
+                let peers = node.discovered_peers().await?;
+                if peers.is_empty() {
+                    println!("No peers discovered yet.");
+                } else {
+                    println!("Discovered peers:");
+                    for p in peers {
+                        println!("  {}", p);
+                    }
+                }
             }
-        } else if let Some(rest) = line.strip_prefix("/sendfile ") {
-            let parts: Vec<&str> = rest.splitn(2, ' ').collect();
-            if parts.len() == 2 {
-                let peer_id = parts[0].to_string();
-                let file_path = parts[1].to_string();
-                let data = tokio::fs::read(&file_path).await?;
-                let file_name = std::path::Path::new(&file_path).file_name().unwrap().to_string_lossy().to_string();
-                node.send_command(P2pCommand::SendFile(peer_id, file_name, data)).await?;
-                println!("File sending started");
-            } else {
-                println!("Usage: /sendfile <peer_id> <file_path>");
+            ["broadcast", msg] => {
+                node.broadcast(msg.as_bytes().to_vec()).await?;
+                println!("Broadcast sent.");
             }
-        } else {
-            println!("Unknown command");
+            ["private", peer_str, msg] => {
+                let peer = PeerId::from_str(peer_str)?;
+                node.send_private(peer, msg.as_bytes().to_vec()).await?;
+                println!("Private message sent.");
+            }
+            ["quit"] => break,
+            _ => println!("Unknown command."),
         }
     }
 

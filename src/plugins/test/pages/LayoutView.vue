@@ -208,7 +208,9 @@ const startWithKey = async () => {
 
 const generateNew = async () => {
   try {
-    const [key, peerId] = await generateIdentity()
+    const [peerId,key ] = await generateIdentity()
+    console.log("key,peerId",key,peerId);
+    
     keyInput.value = key
     localStorage.setItem('p2p-key', key)
     myPeerId.value = peerId

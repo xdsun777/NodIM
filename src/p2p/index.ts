@@ -39,13 +39,24 @@ export interface FileTransferProgressPayload {
 export interface FileReceivedPayload {
   peer: string
   fileName: string
-  savedPath: string
+  dataBase64: string // 完整文件的 Base64 编码
+  fileSize: number // 文件大小（字节）
 }
 
 /** 文件发送完成 */
 export interface FileSentPayload {
   peer: string
   transferId: number
+}
+
+/** 文件块数据流（二进制数据 Base64 编码后传输） */
+export interface FileChunkPayload {
+  peer: string
+  transferId: number
+  chunkIndex: number
+  dataBase64: string // Base64 编码的二进制数据
+  chunkSize: number // 原始二进制数据的字节数
+  isLast: boolean // 是否是最后一块
 }
 
 // ==============================
@@ -222,6 +233,19 @@ export function onFileSent(
   callback: (payload: FileSentPayload) => void
 ): Promise<UnlistenFn> {
   return listen<FileSentPayload>('p2p:file-sent', (event) => {
+    callback(event.payload)
+  })
+}
+
+/**
+ * 当接收到文件块数据流时触发
+ * 数据使用 Base64 编码传输，需要前端解码后保存到 IndexedDB
+ * @param callback 接收文件块数据的回调函数
+ */
+export function onFileChunk(
+  callback: (payload: FileChunkPayload) => void
+): Promise<UnlistenFn> {
+  return listen<FileChunkPayload>('p2p:file-chunk', (event) => {
     callback(event.payload)
   })
 }

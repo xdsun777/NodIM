@@ -2,6 +2,7 @@ use crate::P2pState;
 use libp2p::PeerId;
 use tauri::{State, AppHandle, Emitter};
 use std::path::PathBuf;
+use base64::engine::Engine;
 
 /// 生成密钥 + PeerId（返回给前端存储）
 #[tauri::command]
@@ -14,10 +15,10 @@ pub fn generate_identity() -> Result<(String, String), String> {
 pub async fn start_with_identity(
     app_handle: AppHandle,
     state: State<'_, P2pState>,
-    keyBase64: String,
+    key_base64: String,
 ) -> Result<String, String> {
     // 解码密钥
-    let key = nodp2p::de_key(keyBase64);
+    let key = nodp2p::de_key(key_base64);
 
     // 启动 P2P 网络
     let (cmd_tx, mut event_rx) = nodp2p::start_swarm(key)
@@ -127,14 +128,17 @@ pub async fn start_with_identity(
                 nodp2p::AppEvent::FileReceived {
                     peer,
                     file_name,
-                    saved_path,
+                    data,
                 } => {
+                    // 将完整的二进制数据转换为 Base64
+                    let data_base64 = base64::engine::general_purpose::STANDARD.encode(&data);
                     let _ = app_handle.emit(
                         "p2p:file-received",
                         serde_json::json!({
                             "peer": peer.to_string(),
                             "fileName": file_name,
-                            "savedPath": saved_path.to_string_lossy().to_string(),
+                            "dataBase64": data_base64,
+                            "fileSize": data.len(),
                         }),
                     );
                 }
@@ -147,6 +151,29 @@ pub async fn start_with_identity(
                         serde_json::json!({
                             "peer": peer.to_string(),
                             "transferId": transfer_id,
+                        }),
+                    );
+                }
+                // 处理文件块数据流
+                nodp2p::AppEvent::FileChunkReceived {
+                    peer,
+                    transfer_id,
+                    offset,
+                    data,
+                    is_last,
+                } => {
+                    // 将二进制数据编码为 base64 以通过 JSON 传输
+                    let data_base64 = base64::engine::general_purpose::STANDARD.encode(&data);
+                    let chunk_index = (offset / 1024 / 1024) as u32; // 假设每块 1MB
+                    let _ = app_handle.emit(
+                        "p2p:file-chunk",
+                        serde_json::json!({
+                            "peer": peer.to_string(),
+                            "transferId": transfer_id,
+                            "chunkIndex": chunk_index,
+                            "dataBase64": data_base64,
+                            "chunkSize": data.len(),
+                            "isLast": is_last,
                         }),
                     );
                 }
@@ -258,7 +285,7 @@ pub fn send_file_binary(
         .as_ref()
         .ok_or("P2P 未启动")?
         .clone();
-
+    println!("_name{},{}",peer_id,_name);
     // 将二进制数据作为单个分块发送
     cmd_tx
         .send(nodp2p::Command::SendFileChunk {

@@ -1,133 +1,319 @@
-use crate::p2p::{Node, NodeEvent, PeerId};
-use serde::Serialize;
-use std::str::FromStr;
-use tauri::{Emitter, Manager};
-use tokio::sync::{mpsc, oneshot};
+use crate::P2pState;
+use libp2p::PeerId;
+use tauri::{State, AppHandle, Emitter};
+use std::path::PathBuf;
 
-#[derive(Serialize, Clone)]
-pub struct PeerInfo {
-    pub peer_id: String,
-}
-
-enum P2pCommand {
-    GetLocalPeerId(oneshot::Sender<String>),
-    GetPeers(oneshot::Sender<Vec<String>>),
-    SendBroadcast(String),
-    SendPrivate(String, String),
-}
-
-static COMMAND_TX: std::sync::OnceLock<mpsc::Sender<P2pCommand>> = std::sync::OnceLock::new();
-
+/// 生成密钥 + PeerId（返回给前端存储）
 #[tauri::command]
-pub async fn get_local_peer_id() -> Result<String, String> {
-    let (tx, rx) = oneshot::channel();
-    COMMAND_TX
-        .get()
-        .ok_or("P2P 未初始化")?
-        .send(P2pCommand::GetLocalPeerId(tx))
+pub fn generate_identity() -> Result<(String, String), String> {
+    nodp2p::create_key()
+}
+
+/// 使用前端传来的密钥启动 P2P
+#[tauri::command]
+pub async fn start_with_identity(
+    app_handle: AppHandle,
+    state: State<'_, P2pState>,
+    keyBase64: String,
+) -> Result<String, String> {
+    // 解码密钥
+    let key = nodp2p::de_key(keyBase64);
+
+    // 启动 P2P 网络
+    let (cmd_tx, mut event_rx) = nodp2p::start_swarm(key)
         .await
         .map_err(|e| e.to_string())?;
-    rx.await.map_err(|e| e.to_string())
-}
 
-#[tauri::command]
-pub async fn get_discovered_peers() -> Result<Vec<PeerInfo>, String> {
-    let (tx, rx) = oneshot::channel();
-    COMMAND_TX
-        .get()
-        .ok_or("P2P 未初始化")?
-        .send(P2pCommand::GetPeers(tx))
-        .await
-        .map_err(|e| e.to_string())?;
-    let peers = rx.await.map_err(|e| e.to_string())?;
-    Ok(peers.into_iter().map(|p| PeerInfo { peer_id: p }).collect())
-}
+    // 保存命令发送器
+    *state.cmd_tx.write() = Some(cmd_tx.clone());
 
-#[tauri::command]
-pub async fn send_broadcast(msg: String) -> Result<(), String> {
-    COMMAND_TX
-        .get()
-        .ok_or("P2P 未初始化")?
-        .send(P2pCommand::SendBroadcast(msg))
-        .await
-        .map_err(|e| e.to_string())
-}
+    // 在后台处理事件
+    let state_clone = P2pState {
+        cmd_tx: parking_lot::RwLock::new(None), // 不需要复制
+        peer_id: parking_lot::RwLock::new(*state.peer_id.read()),
+        connected_peers: state.connected_peers.clone(),
+        discovered_peers: state.discovered_peers.clone(),
+    };
 
-#[tauri::command]
-pub async fn send_private_msg(peer_id: String, msg: String) -> Result<(), String> {
-    COMMAND_TX
-        .get()
-        .ok_or("P2P 未初始化")?
-        .send(P2pCommand::SendPrivate(peer_id, msg))
-        .await
-        .map_err(|e| e.to_string())
-}
-
-/// 初始化 P2P 节点，设置全局命令通道，并启动事件转发任务
-pub async fn setup_p2p(app_handle: tauri::AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    let node = Node::new().await?;
-    let local_peer_id = node.local_peer_id().to_string();
-    println!("P2P node started: {}", local_peer_id);
-
-    let (cmd_tx, mut cmd_rx) = mpsc::channel(32);
-    COMMAND_TX.set(cmd_tx).unwrap();
-
-    let mut event_rx = node.subscribe_events();
-    let app_handle_clone = app_handle.clone();
-    tokio::spawn(async move {
-        while let Ok(event) = event_rx.recv().await {
+    tauri::async_runtime::spawn(async move {
+        while let Some(event) = event_rx.recv().await {
             match event {
-                NodeEvent::NewListenAddr(addr) => {
-                    println!("Listening on {}", addr);
+                nodp2p::AppEvent::PeerConnected(peer) => {
+                    state_clone.connected_peers.write().insert(peer.to_string(), peer);
+                    let _ = app_handle.emit("p2p:peer-connected", peer.to_string());
                 }
-                NodeEvent::PeerDiscovered(peer) => {
-                    let _ = app_handle_clone.emit("peer:discovered", peer.to_string());
+                nodp2p::AppEvent::PeerDisconnected(peer) => {
+                    state_clone.connected_peers.write().remove(&peer.to_string());
+                    let _ = app_handle.emit("p2p:peer-disconnected", peer.to_string());
                 }
-                NodeEvent::BroadcastMessage { from, data } => {
-                    let msg = String::from_utf8_lossy(&data).to_string();
-                    let _ = app_handle_clone.emit("message:broadcast", (from.to_string(), msg));
+                nodp2p::AppEvent::PeerDiscovered(peer, addr) => {
+                    state_clone
+                        .discovered_peers
+                        .write()
+                        .insert(peer.to_string(), addr.to_string());
+                    let _ = app_handle.emit(
+                        "p2p:peer-discovered",
+                        serde_json::json!({
+                            "peer": peer.to_string(),
+                            "addr": addr.to_string(),
+                        }),
+                    );
                 }
-                NodeEvent::PrivateMessage { from, data } => {
-                    let msg = String::from_utf8_lossy(&data).to_string();
-                    let _ = app_handle_clone.emit("message:private", (from.to_string(), msg));
+                nodp2p::AppEvent::MessageReceived { peer, message } => {
+                    let _ = app_handle.emit(
+                        "p2p:broadcast-received",
+                        serde_json::json!({
+                            "from": peer.to_string(),
+                            "message": message,
+                        }),
+                    );
+                }
+                nodp2p::AppEvent::PrivateText(peer, text) => {
+                    let _ = app_handle.emit(
+                        "p2p:private-message-received",
+                        serde_json::json!({
+                            "from": peer.to_string(),
+                            "text": text,
+                        }),
+                    );
+                }
+                nodp2p::AppEvent::FileRequestReceived {
+                    peer,
+                    transfer_id,
+                    file_name,
+                    file_size,
+                } => {
+                    let _ = app_handle.emit(
+                        "p2p:file-request",
+                        serde_json::json!({
+                            "peer": peer.to_string(),
+                            "transferId": transfer_id,
+                            "fileName": file_name,
+                            "fileSize": file_size,
+                        }),
+                    );
+                }
+                nodp2p::AppEvent::FileTransferStarted {
+                    peer,
+                    transfer_id,
+                    file_name,
+                } => {
+                    let _ = app_handle.emit(
+                        "p2p:file-transfer-started",
+                        serde_json::json!({
+                            "peer": peer.to_string(),
+                            "transferId": transfer_id,
+                            "fileName": file_name,
+                        }),
+                    );
+                }
+                nodp2p::AppEvent::FileTransferProgress {
+                    peer,
+                    transfer_id,
+                    received,
+                    total,
+                } => {
+                    let _ = app_handle.emit(
+                        "p2p:file-transfer-progress",
+                        serde_json::json!({
+                            "peer": peer.to_string(),
+                            "transferId": transfer_id,
+                            "received": received,
+                            "total": total,
+                            "progress": (received as f64 / total as f64 * 100.0) as u32,
+                        }),
+                    );
+                }
+                nodp2p::AppEvent::FileReceived {
+                    peer,
+                    file_name,
+                    saved_path,
+                } => {
+                    let _ = app_handle.emit(
+                        "p2p:file-received",
+                        serde_json::json!({
+                            "peer": peer.to_string(),
+                            "fileName": file_name,
+                            "savedPath": saved_path.to_string_lossy().to_string(),
+                        }),
+                    );
+                }
+                nodp2p::AppEvent::FileSent {
+                    peer,
+                    transfer_id,
+                } => {
+                    let _ = app_handle.emit(
+                        "p2p:file-sent",
+                        serde_json::json!({
+                            "peer": peer.to_string(),
+                            "transferId": transfer_id,
+                        }),
+                    );
                 }
             }
         }
     });
 
-    tokio::spawn(async move {
-        while let Some(cmd) = cmd_rx.recv().await {
-            match cmd {
-                P2pCommand::GetLocalPeerId(tx) => {
-                    let _ = tx.send(node.local_peer_id().to_string());
-                }
-                P2pCommand::GetPeers(tx) => {
-                    match node.discovered_peers().await {
-                        Ok(peers) => {
-                            let peer_strings: Vec<String> = peers.into_iter().map(|p| p.to_string()).collect();
-                            let _ = tx.send(peer_strings);
-                        }
-                        Err(e) => eprintln!("Failed to get peers: {}", e),
-                    }
-                }
-                P2pCommand::SendBroadcast(msg) => {
-                    if let Err(e) = node.broadcast(msg.into_bytes()).await {
-                        eprintln!("Broadcast failed: {}", e);
-                    }
-                }
-                P2pCommand::SendPrivate(peer_str, msg) => {
-                    match PeerId::from_str(&peer_str) {
-                        Ok(peer) => {
-                            if let Err(e) = node.send_private(peer, msg.into_bytes()).await {
-                                eprintln!("Private message failed: {}", e);
-                            }
-                        }
-                        Err(e) => eprintln!("Invalid peer id: {}", e),
-                    }
-                }
-            }
-        }
-    });
+    // 返回当前节点的 PeerId
+    let peer_id_str = format!("自己的PeerId需要从某处获取");
+    Ok(peer_id_str)
+}
+
+/// 群发广播消息
+#[tauri::command]
+pub fn broadcast_message(
+    state: State<P2pState>,
+    message: String,
+) -> Result<(), String> {
+    let cmd_tx = state
+        .cmd_tx
+        .read()
+        .as_ref()
+        .ok_or("P2P 未启动")?
+        .clone();
+
+    cmd_tx
+        .send(nodp2p::Command::Broadcast(message))
+        .map_err(|e| format!("广播消息失败: {}", e))?;
 
     Ok(())
+}
+
+/// 私聊消息
+#[tauri::command]
+pub fn send_private(
+    state: State<P2pState>,
+    peer_id: String,
+    message: String,
+) -> Result<(), String> {
+    let peer_id = peer_id
+        .parse::<PeerId>()
+        .map_err(|_| "无效的 PeerId".to_string())?;
+
+    let cmd_tx = state
+        .cmd_tx
+        .read()
+        .as_ref()
+        .ok_or("P2P 未启动")?
+        .clone();
+
+    cmd_tx
+        .send(nodp2p::Command::SendPrivateText {
+            peer: peer_id,
+            text: message,
+        })
+        .map_err(|e| format!("发送私聊消息失败: {}", e))?;
+
+    Ok(())
+}
+
+/// 发送文件（通过路径）
+#[tauri::command]
+pub fn send_file(
+    state: State<P2pState>,
+    peer_id: String,
+    path: String,
+) -> Result<(), String> {
+    let peer_id_parsed = peer_id
+        .parse::<PeerId>()
+        .map_err(|_| "无效的 PeerId".to_string())?;
+
+    let file_path = PathBuf::from(&path);
+    if !file_path.exists() {
+        return Err(format!("文件不存在: {}", path));
+    }
+
+    let cmd_tx = state
+        .cmd_tx
+        .read()
+        .as_ref()
+        .ok_or("P2P 未启动")?
+        .clone();
+
+    cmd_tx
+        .send(nodp2p::Command::SendFile {
+            peer: peer_id_parsed,
+            path: file_path,
+        })
+        .map_err(|e| format!("发送文件失败: {}", e))?;
+
+    Ok(())
+}
+
+/// 发送二进制数据（作为文件）
+#[tauri::command]
+pub fn send_file_binary(
+    state: State<'_, P2pState>,
+    peer_id: String,
+    _name: String,
+    data: Vec<u8>,
+) -> Result<(), String> {
+    let peer = peer_id
+        .parse::<PeerId>()
+        .map_err(|_| "无效PeerID".to_string())?;
+
+    let cmd_tx = state
+        .cmd_tx
+        .read()
+        .as_ref()
+        .ok_or("P2P 未启动")?
+        .clone();
+
+    // 将二进制数据作为单个分块发送
+    cmd_tx
+        .send(nodp2p::Command::SendFileChunk {
+            transfer_id: generate_transfer_id(),
+            peer,
+            offset: 0,
+            data,
+            is_last: true,
+        })
+        .map_err(|e| format!("发送二进制文件失败: {}", e))?;
+
+    Ok(())
+}
+
+/// 获取已连接的对等节点
+#[tauri::command]
+pub fn get_connected_peers(state: State<P2pState>) -> Result<Vec<String>, String> {
+    let peers = state
+        .connected_peers
+        .read()
+        .keys()
+        .cloned()
+        .collect();
+
+    Ok(peers)
+}
+
+/// 获取已发现的对等节点
+#[tauri::command]
+pub fn get_discovered_peers(state: State<P2pState>) -> Result<Vec<(String, String)>, String> {
+    let peers = state
+        .discovered_peers
+        .read()
+        .iter()
+        .map(|(peer_id, addr)| (peer_id.clone(), addr.clone()))
+        .collect();
+
+    Ok(peers)
+}
+
+/// 获取当前节点的 PeerId
+#[tauri::command]
+pub fn get_peer_id(state: State<P2pState>) -> Result<Option<String>, String> {
+    Ok(state
+        .peer_id
+        .read()
+        .as_ref()
+        .map(|p| p.to_string()))
+}
+
+/// 生成转移 ID
+fn generate_transfer_id() -> u64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }

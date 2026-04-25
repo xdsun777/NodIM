@@ -1,44 +1,227 @@
-import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { invoke } from '@tauri-apps/api/core'
+import { listen, UnlistenFn } from '@tauri-apps/api/event'
 
-export class P2PClient {
-  private static instance: P2PClient;
-  public localPeerId = '';
+// ==============================
+// 数据类型定义
+// ==============================
 
-  private constructor() {}
-  static getInstance(): P2PClient {
-    if (!this.instance) this.instance = new P2PClient();
-    return this.instance;
-  }
-
-  async init() {
-    this.localPeerId = await invoke<string>('get_local_peer_id');
-    return this.localPeerId;
-  }
-
-  async getPeers() {
-    return invoke<any[]>('get_peers');
-  }
-
-  async sendBroadcast(msg: string) {
-    return invoke('send_broadcast', { msg });
-  }
-
-  async sendPrivate(peerId: string, msg: string) {
-    return invoke('send_private', { peerId, msg });
-  }
-
-  onPeerDiscovered(callback: () => void) {
-    return listen('peer:discovered', callback);
-  }
-
-  onBroadcastMessage(callback: (peerId: string, content: string) => void) {
-    return listen<[string, string]>('message:broadcast', (e) => callback(e.payload[0], e.payload[1]));
-  }
-
-  onPrivateMessage(callback: (peerId: string, content: string) => void) {
-    return listen<[string, string]>('message:private', (e) => callback(e.payload[0], e.payload[1]));
-  }
+/** 发现的对等节点信息 */
+export interface DiscoveredPeer {
+  peer: string
+  addr: string
 }
 
-export const p2p = P2PClient.getInstance();
+/** 文件请求信息 */
+export interface FileRequestPayload {
+  peer: string
+  transferId: number
+  fileName: string
+  fileSize: number
+}
+
+/** 文件传输开始 */
+export interface FileTransferStartedPayload {
+  peer: string
+  transferId: number
+  fileName: string
+}
+
+/** 文件传输进度 */
+export interface FileTransferProgressPayload {
+  peer: string
+  transferId: number
+  received: number
+  total: number
+  progress: number // 0-100
+}
+
+/** 文件接收完成 */
+export interface FileReceivedPayload {
+  peer: string
+  fileName: string
+  savedPath: string
+}
+
+/** 文件发送完成 */
+export interface FileSentPayload {
+  peer: string
+  transferId: number
+}
+
+// ==============================
+// 命令调用函数
+// ==============================
+
+/**
+ * 生成身份密钥对，返回 [密钥Base64字符串, PeerId字符串]
+ */
+export async function generateIdentity(): Promise<[string, string]> {
+  return await invoke<[string, string]>('generate_identity')
+}
+
+/**
+ * 使用 Base64 编码的密钥启动 P2P 网络
+ * @param keyBase64 密钥的 Base64 字符串
+ * @returns 当前节点的 PeerId
+ */
+export async function startWithIdentity(keyBase64: string): Promise<string> {
+  return await invoke<string>('start_with_identity', {
+    keyBase64,
+  })
+}
+
+/**
+ * 向所有已连接的对等节点广播消息
+ * @param message 要广播的文本
+ */
+export async function broadcastMessage(message: string): Promise<void> {
+  await invoke('broadcast_message', { message })
+}
+
+/**
+ * 发送私聊消息
+ * @param peerId 目标节点的 PeerId
+ * @param message 消息文本
+ */
+export async function sendPrivate(peerId: string, message: string): Promise<void> {
+  await invoke('send_private', { peerId, message })
+}
+
+/**
+ * 发送文件（通过文件路径）
+ * @param peerId 目标节点的 PeerId
+ * @param path 本地文件路径
+ */
+export async function sendFile(peerId: string, path: string): Promise<void> {
+  await invoke('send_file', { peerId, path })
+}
+
+/**
+ * 发送二进制数据（作为文件发送给对等节点）
+ * @param peerId 目标节点的 PeerId
+ * @param fileName 告知对方的文件名
+ * @param data 二进制数据，可以传入 Uint8Array 或 number[]
+ */
+export async function sendFileBinary(
+  peerId: string,
+  fileName: string,
+  data: Uint8Array | number[]
+): Promise<void> {
+  // Tauri 可以自动将 number[] 转换为 Vec<u8>
+  const dataArray = data instanceof Uint8Array ? Array.from(data) : data
+  await invoke('send_file_binary', {
+    peerId,
+    name: fileName,
+    data: dataArray,
+  })
+}
+
+/**
+ * 获取已连接的对等节点 PeerId 列表
+ */
+export async function getConnectedPeers(): Promise<string[]> {
+  return await invoke<string[]>('get_connected_peers')
+}
+
+/**
+ * 获取通过 mDNS 发现的对等节点信息列表
+ */
+export async function getDiscoveredPeers(): Promise<DiscoveredPeer[]> {
+  const raw = await invoke<[string, string][]>('get_discovered_peers')
+  return raw.map(([peer, addr]) => ({ peer, addr }))
+}
+
+/**
+ * 获取当前节点自己的 PeerId，如果未启动则返回 null
+ */
+export async function getOwnPeerId(): Promise<string | null> {
+  return await invoke<string | null>('get_peer_id')
+}
+
+// ==============================
+// 事件监听器（返回取消监听的函数）
+// ==============================
+
+/** 当有新的对等节点连接时触发 */
+export function onPeerConnected(callback: (peerId: string) => void): Promise<UnlistenFn> {
+  return listen<string>('p2p:peer-connected', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当对等节点断开连接时触发 */
+export function onPeerDisconnected(callback: (peerId: string) => void): Promise<UnlistenFn> {
+  return listen<string>('p2p:peer-disconnected', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当通过 mDNS 发现新的对等节点时触发 */
+export function onPeerDiscovered(callback: (peer: DiscoveredPeer) => void): Promise<UnlistenFn> {
+  return listen<{ peer: string; addr: string }>('p2p:peer-discovered', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当收到广播消息时触发 */
+export function onBroadcastReceived(
+  callback: (from: string, message: string) => void
+): Promise<UnlistenFn> {
+  return listen<{ from: string; message: string }>('p2p:broadcast-received', (event) => {
+    callback(event.payload.from, event.payload.message)
+  })
+}
+
+/** 当收到私聊消息时触发 */
+export function onPrivateMessageReceived(
+  callback: (from: string, text: string) => void
+): Promise<UnlistenFn> {
+  return listen<{ from: string; text: string }>('p2p:private-message-received', (event) => {
+    callback(event.payload.from, event.payload.text)
+  })
+}
+
+/** 当收到文件传输请求时触发 */
+export function onFileRequest(
+  callback: (payload: FileRequestPayload) => void
+): Promise<UnlistenFn> {
+  return listen<FileRequestPayload>('p2p:file-request', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当文件传输实际开始时触发 */
+export function onFileTransferStarted(
+  callback: (payload: FileTransferStartedPayload) => void
+): Promise<UnlistenFn> {
+  return listen<FileTransferStartedPayload>('p2p:file-transfer-started', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当文件传输进度更新时触发 */
+export function onFileTransferProgress(
+  callback: (payload: FileTransferProgressPayload) => void
+): Promise<UnlistenFn> {
+  return listen<FileTransferProgressPayload>('p2p:file-transfer-progress', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当文件接收完成时触发 */
+export function onFileReceived(
+  callback: (payload: FileReceivedPayload) => void
+): Promise<UnlistenFn> {
+  return listen<FileReceivedPayload>('p2p:file-received', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当文件发送完成时触发 */
+export function onFileSent(
+  callback: (payload: FileSentPayload) => void
+): Promise<UnlistenFn> {
+  return listen<FileSentPayload>('p2p:file-sent', (event) => {
+    callback(event.payload)
+  })
+}

@@ -45,7 +45,10 @@ pub fn run() {
             commands::send_private,
             commands::send_file,
             commands::send_file_binary,
+            commands::send_file_request,
+            commands::send_file_chunk,
             commands::get_connected_peers,
+            commands::get_peers,
             commands::get_discovered_peers,
             commands::get_peer_id,
         ])

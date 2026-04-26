@@ -226,8 +226,10 @@ import {
   startWithIdentity,
   broadcastMessage,
   sendPrivate,
+  sendFileBinary,
   getConnectedPeers,
   getDiscoveredPeers,
+  getPeers,
   onPeerConnected,
   onPeerDisconnected,
   onPeerDiscovered,
@@ -238,9 +240,11 @@ import {
   onFileTransferProgress,
   onFileReceived,
   onFileChunk,
+  onPeersList,
   type DiscoveredPeer,
   type FileChunkPayload,
 } from '@/p2p'
+import type { UnlistenFn } from '@tauri-apps/api/event'
 import { fileStorageDB } from '@/utils/fileStorageDB'
 
 // -------------------- 身份管理 --------------------
@@ -259,9 +263,7 @@ const startWithKey = async () => {
 
 const generateNew = async () => {
   try {
-    const [peerId,key ] = await generateIdentity()
-    console.log("key,peerId",key,peerId);
-    
+    const [key, peerId] = await generateIdentity()
     keyInput.value = key
     localStorage.setItem('p2p-key', key)
     myPeerId.value = peerId
@@ -285,6 +287,7 @@ const selectedPeer = ref<string | null>(null)
 
 const refreshPeers = async () => {
   try {
+    await getPeers()
     const [conn, disc] = await Promise.all([
       getConnectedPeers(),
       getDiscoveredPeers(),
@@ -348,22 +351,13 @@ const sendSelectedFile = async () => {
   if (!selectedPeer.value || !selectedFile.value) return
   try {
     const arrayBuffer = await selectedFile.value.arrayBuffer()
-    const data = Array.from(new Uint8Array(arrayBuffer))
-    console.log(data);
-    
-    // 调用二进制发送
-    await invokeBinarySend(selectedPeer.value, selectedFile.value.name, data)
+    const data = new Uint8Array(arrayBuffer)
+    await sendFileBinary(selectedPeer.value, selectedFile.value.name, data)
     selectedFile.value = null
     if (fileInput.value) fileInput.value.value = ''
   } catch (e) {
     alert('文件发送失败: ' + e)
   }
-}
-
-// 备用：如果 p2p 模块未导出 sendFileBinary，直接封装 invoke
-const invokeBinarySend = async (peerId: string, name: string, data: number[]) => {
-  const { invoke } = await import('@tauri-apps/api/core')
-  await invoke('send_file_binary', { peerId, name, data })
 }
 
 // 文件传输状态
@@ -443,10 +437,17 @@ const downloadFile = async (transfer: FileTransferState) => {
     const binaryData = await fileStorageDB.getAllChunks(transfer.transferId)
     console.log(`Downloading file: ${transfer.fileName} (${binaryData.length} bytes, MIME: ${mimeType})`)
     
-    // 尝试使用现代浏览器的文件系统 API 选择保存位置
-    if ('showSaveFilePicker' in window) {
+    type SaveFilePickerFn = (options: {
+      suggestedName: string
+      types: Array<{ description: string; accept: Record<string, string[]> }>
+    }) => Promise<{
+      createWritable: () => Promise<{ write: (data: unknown) => Promise<void>; close: () => Promise<void> }>
+    }>
+
+    const showSaveFilePicker = (window as unknown as { showSaveFilePicker?: SaveFilePickerFn }).showSaveFilePicker
+    if (showSaveFilePicker) {
       try {
-        const handle = await window.showSaveFilePicker({
+        const handle = await showSaveFilePicker({
           suggestedName: transfer.fileName,
           types: [{
             description: 'File',
@@ -462,7 +463,7 @@ const downloadFile = async (transfer: FileTransferState) => {
         await writable.close()
         console.log('File saved to selected location:', transfer.fileName)
         alert('文件已保存到指定位置')
-      } catch (error) {
+      } catch {
         // 用户取消选择或其他错误，回退到传统下载方式
         console.log('Using traditional download method as fallback')
         useTraditionalDownload(binaryData, transfer.fileName, mimeType)
@@ -482,7 +483,7 @@ const downloadFile = async (transfer: FileTransferState) => {
  */
 const useTraditionalDownload = (binaryData: Uint8Array, fileName: string, mimeType: string) => {
   // 对于传统下载，需要将 Uint8Array 转换为 Blob
-  const blob = new Blob([binaryData], { type: mimeType })
+  const blob = new Blob([binaryData.buffer as ArrayBuffer], { type: mimeType })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -551,7 +552,7 @@ const previewMediaFile = async (transfer: FileTransferState) => {
     
     // 获取二进制数据
     const binaryData = await fileStorageDB.getAllChunks(transfer.transferId)
-    const blob = new Blob([binaryData], { type: mimeType })
+    const blob = new Blob([binaryData.buffer as ArrayBuffer], { type: mimeType })
     
     // 创建预览 URL
     previewUrl.value = URL.createObjectURL(blob)
@@ -579,7 +580,7 @@ const closePreview = () => {
 }
 
 // -------------------- 事件监听 --------------------
-const unlisteners: Function[] = []
+const unlisteners: UnlistenFn[] = []
 
 onMounted(async () => {
   await refreshPeers()
@@ -595,6 +596,10 @@ onMounted(async () => {
   unlisteners.push(await onPeerDiscovered((peer) => {
     const exists = discoveredPeers.value.some(p => p.peer === peer.peer)
     if (!exists) discoveredPeers.value.push(peer)
+  }))
+
+  unlisteners.push(await onPeersList((peers) => {
+    connectedPeers.value = peers
   }))
 
   // 消息接收
@@ -621,7 +626,7 @@ onMounted(async () => {
       payload.transferId,
       payload.fileName,
       payload.fileSize,
-      Math.ceil(payload.fileSize / (1024 * 1024)) // 假设每个块 1MB
+      Math.ceil(payload.fileSize / (256 * 1024)) // 256KB 每块
     ).catch(error => console.error('Failed to create transfer in DB:', error))
   }))
   unlisteners.push(await onFileTransferStarted((payload) => {

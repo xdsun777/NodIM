@@ -109,6 +109,7 @@ export async function sendFile(peerId: string, path: string): Promise<void> {
 
 /**
  * 发送二进制数据（作为文件发送给对等节点）
+ * 支持大文件分块传输
  * @param peerId 目标节点的 PeerId
  * @param fileName 告知对方的文件名
  * @param data 二进制数据，可以传入 Uint8Array 或 number[]
@@ -118,13 +119,19 @@ export async function sendFileBinary(
   fileName: string,
   data: Uint8Array | number[]
 ): Promise<void> {
-  // Tauri 可以自动将 number[] 转换为 Vec<u8>
-  const dataArray = data instanceof Uint8Array ? Array.from(data) : data
-  await invoke('send_file_binary', {
-    peerId,
-    name: fileName,
-    data: dataArray,
-  })
+  const dataArray = data instanceof Uint8Array ? data : new Uint8Array(data)
+  const fileSize = dataArray.length
+  const transferId = Date.now() // 使用时间戳作为transferId
+
+  await sendFileRequest(peerId, transferId, fileName, fileSize)
+
+  const chunkSize = 256 * 1024 // 256KB per chunk
+  for (let offset = 0; offset < dataArray.length; offset += chunkSize) {
+    const end = Math.min(offset + chunkSize, dataArray.length)
+    const chunk = dataArray.slice(offset, end)
+    const isLast = end === dataArray.length
+    await sendFileChunk(peerId, transferId, offset, Array.from(chunk), isLast)
+  }
 }
 
 /**
@@ -143,10 +150,55 @@ export async function getDiscoveredPeers(): Promise<DiscoveredPeer[]> {
 }
 
 /**
- * 获取当前节点自己的 PeerId，如果未启动则返回 null
+ * 获取所有已连接的节点列表
  */
-export async function getOwnPeerId(): Promise<string | null> {
-  return await invoke<string | null>('get_peer_id')
+export async function getPeers(): Promise<void> {
+  await invoke('get_peers')
+}
+
+/**
+ * 发送文件请求
+ * @param peerId 目标节点的 PeerId
+ * @param transferId 传输ID
+ * @param fileName 文件名
+ * @param fileSize 文件大小
+ */
+export async function sendFileRequest(
+  peerId: string,
+  transferId: number,
+  fileName: string,
+  fileSize: number
+): Promise<void> {
+  await invoke('send_file_request', {
+    peerId,
+    transferId,
+    fileName,
+    fileSize,
+  })
+}
+
+/**
+ * 发送文件块
+ * @param peerId 目标节点的 PeerId
+ * @param transferId 传输ID
+ * @param offset 偏移
+ * @param data 数据块
+ * @param isLast 是否最后一块
+ */
+export async function sendFileChunk(
+  peerId: string,
+  transferId: number,
+  offset: number,
+  data: number[],
+  isLast: boolean
+): Promise<void> {
+  await invoke('send_file_chunk', {
+    peerId,
+    transferId,
+    offset,
+    data,
+    isLast,
+  })
 }
 
 // ==============================
@@ -246,6 +298,13 @@ export function onFileChunk(
   callback: (payload: FileChunkPayload) => void
 ): Promise<UnlistenFn> {
   return listen<FileChunkPayload>('p2p:file-chunk', (event) => {
+    callback(event.payload)
+  })
+}
+
+/** 当获取到节点列表时触发 */
+export function onPeersList(callback: (peers: string[]) => void): Promise<UnlistenFn> {
+  return listen<string[]>('p2p:peers-list', (event) => {
     callback(event.payload)
   })
 }

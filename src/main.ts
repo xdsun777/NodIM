@@ -1,3 +1,5 @@
+// src/main.ts
+
 // 全局样式
 import './assets/base.css';
 import '@/assets/iconfont/iconfont.css'
@@ -7,17 +9,16 @@ import IconFont from './components/common/IconFont.vue';
 
 
 
-// src/main.ts
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
-// import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
 import { pluginManager } from '@/core/plugin';
 import { router } from '@/router';
 import { eventBus } from '@/core/event';
 
 import App from '@/App.vue';
-import { useSystemInfoStore } from '@/stores/systemInfo';
+import { useAppConfigStore } from '@/stores/appConfig';
 
 
 // 导入插件（关键：确保插件被注册）
@@ -34,7 +35,7 @@ app.component('IconFont',IconFont)//.component('font-awesome-icon',FontAwesomeIc
 
 // 安装Pinia（状态管理） Vue Router
 const pinia = createPinia();
-// pinia.use(piniaPluginPersistedstate)
+pinia.use(piniaPluginPersistedstate)
 
 
 app.use(pinia).use(router);
@@ -49,7 +50,7 @@ pluginManager.getPlugins().forEach((plugin) => {
 
 // 全局挂载事件总线（可选）
 app.config.globalProperties.$eventBus = eventBus;
-app.config.globalProperties.$systemInfo = useSystemInfoStore();
+app.config.globalProperties.$appConfig = useAppConfigStore();
 
 // 优雅挂载：通过类选择器获取挂载点（替代硬编码 ID）
 const mountPoint = document.querySelector('.app-mount-point');

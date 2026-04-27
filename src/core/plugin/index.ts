@@ -42,7 +42,6 @@ export class PluginManager {
       }
     }
     this.plugins.set(pluginName, plugin);
-    console.log(`插件${pluginName}注册成功`);
     // 自动注册模式下，若已关联Vue实例则直接安装
     if (this.options.autoRegister && this.app) {
       this.install(pluginName);
@@ -66,7 +65,6 @@ export class PluginManager {
       plugin.hooks.install(this.app!);
       // 标记为激活状态
       this.activePlugins.add(pluginName);
-      console.log(`插件${pluginName}安装成功`);
       return true;
     } catch (e) {
       console.error(`插件${pluginName}安装失败`, e);
@@ -84,7 +82,6 @@ export class PluginManager {
       plugin.hooks.uninstall?.(this.app!);
       // 移除激活状态
       this.activePlugins.delete(pluginName);
-      console.log(`插件${pluginName}卸载成功`);
       return true;
     } catch (e) {
       console.error(`插件${pluginName}卸载失败`, e);
@@ -98,7 +95,6 @@ export class PluginManager {
     if (!plugin || !this.activePlugins.has(pluginName)) return false;
     try {
       plugin.hooks.activate?.();
-      console.log(`插件${pluginName}激活成功`);
       return true;
     } catch (e) {
       console.error(`插件${pluginName}激活失败`, e);
@@ -112,7 +108,6 @@ export class PluginManager {
     if (!plugin || !this.activePlugins.has(pluginName)) return false;
     try {
       plugin.hooks.deactivate?.();
-      console.log(`插件${pluginName}失活成功`);
       return true;
     } catch (e) {
       console.error(`插件${pluginName}失活失败`, e);

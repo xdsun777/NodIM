@@ -4,7 +4,7 @@
            w-[70vw]
            flex items-center
            rounded-full
-           border-2 border-primary bg-bg-primary
+           border-2 border-primary/10 bg-bg-primary/60
             sm:hidden shadow-lg ">
     <button v-for="plugin in pluginList" :key="plugin.name" :class="{
       'text-primary': !isActive(plugin.name),
@@ -18,11 +18,31 @@
 </template>
 
 <script setup lang="ts">
-// 原有逻辑不变（仅样式修改）
-import { computed, watch } from "vue";
+import { computed, watch, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { pluginManager } from "@/core/plugin";
 import type { PluginMeta } from "@/core/plugin/type";
+import { useAppConfigStore } from '@/stores/appConfig'
+
+const router = useRouter();
+const route = useRoute();
+const appConfigStore = useAppConfigStore()
+
+onMounted(async () => {
+
+  if (route.path == '/') {
+    router.push(appConfigStore.activePlugin);
+  }
+
+  if (!appConfigStore.auth) {
+    router.push({
+      name: 'global-auth',
+    });
+  }
+});
+
+
+
 interface Props {
   plugins?: PluginMeta[];
   visible?: boolean;
@@ -34,8 +54,7 @@ const props = withDefaults(defineProps<Props>(), {
   activeColor: "rgb(59, 130, 246)",
 });
 
-const router = useRouter();
-const route = useRoute();
+
 
 const pluginList = computed<PluginMeta[]>(() => {
   return props.plugins && props.plugins.length > 0
@@ -57,10 +76,12 @@ const handleTabClick = (pluginName: string) => {
   router.push(`/${pluginName}`);
   pluginManager.activate(pluginName);
 
+  appConfigStore.activePlugin = pluginName; // 更新当前激活的插件
+
   // 找到当前点击的 plugin 并抛出事件
   const currentPlugin = pluginList.value.find(p => p.name === pluginName)
   if (currentPlugin) {
-    emit('tabChange', currentPlugin) // 👈 关键！
+    emit('tabChange', currentPlugin)
   }
 };
 
@@ -73,7 +94,4 @@ watch(
   },
   { immediate: true }
 );
-
-
-
 </script>

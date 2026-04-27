@@ -1,10 +1,16 @@
 // src/router.ts
 import { createRouter, createWebHistory } from 'vue-router';
+import { useAppConfigStore } from '@/stores/appConfig';
 
-import { pluginManager } from './core/plugin';
-import { routerManager } from './core/router';
-import BasicLayout from './layouts/BasicLayout.vue';
+import { pluginManager } from '@/core/plugin';
+import { routerManager } from '@/core/router';
+
+import BasicLayout from '@/layouts/BasicLayout.vue';
 import AuthApp from '@/components/auth/AuthPage.vue';
+
+
+
+
 const routes = [
   {
     path: '/',
@@ -88,6 +94,12 @@ router.afterEach((to) => {
   // 5.3 动态设置页面标题（适配移动端状态栏）
   if (to.meta.title) {
     document.title = `${to.meta.title} - 你的App名称`;
+  }
+
+  // 5.4 记录当前路由到全局配置
+  const appConfigStore = useAppConfigStore();  
+  if(to.path.indexOf('auth') == -1) {
+    appConfigStore.lastRoute = to.path
   }
 });
 

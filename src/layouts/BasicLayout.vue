@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen flex-col overflow-hidden sm:flex-row">
     <!-- PC端：Header + Search + TabBar 位于第一列 -->
-    <div v-if="$systemInfo.platform == 'test' || $systemInfo.isDesktop"
+    <div v-if="$appConfig.platform == 'test' || $appConfig.isDesktop"
       class="hidden sm:flex sm:w-auto sm:flex-col border-r p-4">
       <HeaderPc></HeaderPc>
 
@@ -20,7 +20,7 @@
     </div>
 
     <!-- 移动端 Header -->
-    <HeaderMobile v-if="$systemInfo.platform == 'test' || $systemInfo.isMobile">
+    <HeaderMobile v-if="$appConfig.platform == 'test' || $appConfig.isMobile">
 
       <template v-slot:rightIcon>
         <IconFont :name="headerConfig.leftIcon" class="h-6 w-6 font-[1000] text-primary" />
@@ -46,7 +46,7 @@
 
     <Transition name="chat-drawer">
       <div v-if="$route.name === 'test-detail'" class="chat-drawer-container">
-        <!-- <RouterView :key="$route.fullPath" ></RouterView> -->
+        <RouterView :key="$route.fullPath" ></RouterView>
       </div>
     </Transition>
 
@@ -62,34 +62,19 @@
 
 </template>
 <script setup lang="ts">
-import HeaderMobile from '@/components/common/Header/HeaderMobile.vue';
+import type { Component } from 'vue'
+import { ref, markRaw } from 'vue'
+
+import type { PluginMeta } from '@/core/plugin/type'
+
 import HeaderPc from '@/components/common/Header/HeaderPc.vue';
+import HeaderMobile from '@/components/common/Header/HeaderMobile.vue';
+import SearchMobile from '@/components/common/Search/SearchMobile.vue'
 
 import TabBar from '@/components/common/TabBar.vue';
 import TabBarPC from '@/components/common/TabBarPC.vue';
-import SearchMobile from '@/components/common/Search/SearchMobile.vue'
-import type { PluginMeta } from '@/core/plugin/type'
-import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { pluginManager } from '@/core/plugin'
 
-const router = useRouter()
 
-// 👇 默认激活 test 插件
-onMounted(() => {
-  // 跳转到测试页面
-  router.replace('/test')
-  // 激活插件
-  pluginManager.activate('test')
-  const pluginMeta = pluginManager.getPluginMeta('test')
-  if (pluginMeta != null) {
-    onTabChange(pluginMeta)
-  }
-
-})
-
-import { ref, markRaw } from 'vue'
-import type { Component } from 'vue'
 interface HeaderData {
   leftIcon: string
   title: string
@@ -104,8 +89,6 @@ const headerConfig = ref<HeaderData>({
 })
 // 监听 TabBar 点击
 const onTabChange = (plugin: PluginMeta) => {
-  console.log('当前切换插件：', plugin)
-
   // ——————————————————
   // 在这里动态改头部！
   // ——————————————————

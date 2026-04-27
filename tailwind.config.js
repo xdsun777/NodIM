@@ -4,6 +4,14 @@ module.exports = {
   content: ['./src/**/*.{html,js,ts,vue,css}'],
   theme: {
     extend: {
+      backdropBlur: {
+        xs: '2px',
+        sm: '4px',
+        md: '8px',
+        lg: '12px',
+        xl: '20px',
+        '2xl': '40px',
+      },
       colors: {
         primary: 'var(--color-primary)', // 控制活动色
         'primary-second': 'var(--color-primary-second)',

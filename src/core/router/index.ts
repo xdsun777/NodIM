@@ -66,7 +66,6 @@ export class RouterManager {
     this.router.addRoute(targetParentName, pluginRootRoute);
 
     this.registeredPluginRoutes.add(pluginName);
-    console.log(`✅ [RouterManager] 插件 ${pluginName} 路由已挂载到父路由 "${targetParentName}"`);
   }
 
   // 同步修改 registerPluginRouter 逻辑
@@ -79,7 +78,6 @@ export class RouterManager {
     if (!this.router) return;
     this.router.removeRoute(`plugin-${pluginName}-root`);
     this.registeredPluginRoutes.delete(pluginName);
-    console.log(`❌ [RouterManager] 插件 ${pluginName} 路由已移除`);
   }
 
   initAllPluginRoutes(plugins: Array<{ name: string; router?: PluginRouter }>) {

@@ -42,7 +42,6 @@ export const testPlugin: AppPlugin = {
         // app.component('MessageBubble', () => import('./components/MessageBubble.vue'));
         // app.component('MessageInput', () => import('./components/MessageInput.vue'));
 
-        console.log('✅ test插件安装成功');
       } catch (error) {
         console.error('❌ test插件安装失败：', error);
         throw error; // 抛出错误，让插件管理器感知
@@ -50,7 +49,6 @@ export const testPlugin: AppPlugin = {
     },
     // 插件激活时执行
     activate() {
-      console.log('📢 test插件已激活');
       eventBus.emit('test:activate');
 
       // 激活时初始化会话列表
@@ -63,7 +61,6 @@ export const testPlugin: AppPlugin = {
     },
     // 插件失活时执行
     deactivate() {
-      console.log('📴 test插件已失活');
       eventBus.emit('message:deactivate');
     },
   },

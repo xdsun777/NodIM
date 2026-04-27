@@ -162,22 +162,6 @@ export const useMessageStore = defineStore('test', {
         }
       }, 500);
     },
-  },
-  persist: {
-    debug: true,
-    // storage: indexedDB
-    // storage: {
-    //   getItem: async (key: string) => {
-    //     // 使用 IndexedDB 获取数据
-    //     const db = await openDB('myDB', 1);
-    //     return db.get('store', key);
-    //   },
-    //   setItem: async (key: string, value: string) => {
-    //     // 使用 IndexedDB 存储数据
-    //     const db = await openDB('myDB', 1);
-    //     await db.put('store', value, key);
-    //   },
-    // },
-  },
+  }
 });
 

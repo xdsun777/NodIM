@@ -9,6 +9,12 @@
   ],
   "permissions": [
     "clipboard-manager:default",
-    "os:default"
+    "os:default",
+    "barcode-scanner:default",
+    "barcode-scanner:allow-scan",
+    "barcode-scanner:allow-cancel",
+    "biometric:default",
+    "dialog:default",
+    "fs:default"
   ]
 }

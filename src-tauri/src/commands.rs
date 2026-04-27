@@ -1,8 +1,8 @@
 use crate::P2pState;
-use libp2p::PeerId;
-use tauri::{State, AppHandle, Emitter};
-use std::path::PathBuf;
 use base64::engine::Engine;
+use libp2p::PeerId;
+use std::path::PathBuf;
+use tauri::{AppHandle, Emitter, State};
 use tokio::fs;
 
 /// 生成转移 ID
@@ -35,9 +35,7 @@ pub async fn start_with_identity(
     *state.peer_id.write() = Some(peer_id);
 
     // 启动 P2P 网络
-    let (cmd_tx, mut event_rx) = nodp2p::start_swarm(key)
-        .await
-        .map_err(|e| e.to_string())?;
+    let (cmd_tx, mut event_rx) = nodp2p::start_swarm(key).await.map_err(|e| e.to_string())?;
 
     // 保存命令发送器
     *state.cmd_tx.write() = Some(cmd_tx.clone());
@@ -54,11 +52,17 @@ pub async fn start_with_identity(
         while let Some(event) = event_rx.recv().await {
             match event {
                 nodp2p::AppEvent::PeerConnected(peer) => {
-                    state_clone.connected_peers.write().insert(peer.to_string(), peer);
+                    state_clone
+                        .connected_peers
+                        .write()
+                        .insert(peer.to_string(), peer);
                     let _ = app_handle.emit("p2p:peer-connected", peer.to_string());
                 }
                 nodp2p::AppEvent::PeerDisconnected(peer) => {
-                    state_clone.connected_peers.write().remove(&peer.to_string());
+                    state_clone
+                        .connected_peers
+                        .write()
+                        .remove(&peer.to_string());
                     let _ = app_handle.emit("p2p:peer-disconnected", peer.to_string());
                 }
                 nodp2p::AppEvent::PeerDiscovered(peer, addr) => {
@@ -161,10 +165,7 @@ pub async fn start_with_identity(
                 nodp2p::AppEvent::PeerReconnected(peer) => {
                     let _ = app_handle.emit("p2p:peer-reconnected", peer.to_string());
                 }
-                nodp2p::AppEvent::FileSent {
-                    peer,
-                    transfer_id,
-                } => {
+                nodp2p::AppEvent::FileSent { peer, transfer_id } => {
                     let _ = app_handle.emit(
                         "p2p:file-sent",
                         serde_json::json!({
@@ -183,7 +184,7 @@ pub async fn start_with_identity(
                 } => {
                     // 将二进制数据编码为 base64 以通过 JSON 传输
                     let data_base64 = base64::engine::general_purpose::STANDARD.encode(&data);
-                    let chunk_index = offset / (1024 * 1024); // 假设每块 1MB，但实际上块大小不固定，这里用offset作为chunk_index
+                    let chunk_index = offset / (256 * 1024); // 256KB per chunk
                     let _ = app_handle.emit(
                         "p2p:file-chunk",
                         serde_json::json!({
@@ -209,16 +210,8 @@ pub async fn start_with_identity(
 
 /// 群发广播消息
 #[tauri::command]
-pub fn broadcast_message(
-    state: State<P2pState>,
-    message: String,
-) -> Result<(), String> {
-    let cmd_tx = state
-        .cmd_tx
-        .read()
-        .as_ref()
-        .ok_or("P2P 未启动")?
-        .clone();
+pub fn broadcast_message(state: State<P2pState>, message: String) -> Result<(), String> {
+    let cmd_tx = state.cmd_tx.read().as_ref().ok_or("P2P 未启动")?.clone();
 
     cmd_tx
         .send(nodp2p::Command::Broadcast(message))
@@ -238,12 +231,7 @@ pub fn send_private(
         .parse::<PeerId>()
         .map_err(|_| "无效的 PeerId".to_string())?;
 
-    let cmd_tx = state
-        .cmd_tx
-        .read()
-        .as_ref()
-        .ok_or("P2P 未启动")?
-        .clone();
+    let cmd_tx = state.cmd_tx.read().as_ref().ok_or("P2P 未启动")?.clone();
 
     cmd_tx
         .send(nodp2p::Command::SendPrivateText {
@@ -282,12 +270,7 @@ pub async fn send_file(
     let file_size = data.len() as u64;
     let transfer_id = generate_transfer_id();
 
-    let cmd_tx = state
-        .cmd_tx
-        .read()
-        .as_ref()
-        .ok_or("P2P 未启动")?
-        .clone();
+    let cmd_tx = state.cmd_tx.read().as_ref().ok_or("P2P 未启动")?.clone();
 
     // 先发送文件请求
     cmd_tx
@@ -336,12 +319,7 @@ pub async fn send_file_binary(
     let file_size = data.len() as u64;
     let transfer_id = generate_transfer_id();
 
-    let cmd_tx = state
-        .cmd_tx
-        .read()
-        .as_ref()
-        .ok_or("P2P 未启动")?
-        .clone();
+    let cmd_tx = state.cmd_tx.read().as_ref().ok_or("P2P 未启动")?.clone();
 
     // 先发送文件请求
     cmd_tx
@@ -378,12 +356,7 @@ pub async fn send_file_binary(
 /// 获取已连接的对等节点
 #[tauri::command]
 pub fn get_connected_peers(state: State<P2pState>) -> Result<Vec<String>, String> {
-    let peers = state
-        .connected_peers
-        .read()
-        .keys()
-        .cloned()
-        .collect();
+    let peers = state.connected_peers.read().keys().cloned().collect();
 
     Ok(peers)
 }
@@ -391,12 +364,7 @@ pub fn get_connected_peers(state: State<P2pState>) -> Result<Vec<String>, String
 /// 获取所有已连接的节点列表（通过命令）
 #[tauri::command]
 pub fn get_peers(state: State<P2pState>) -> Result<(), String> {
-    let cmd_tx = state
-        .cmd_tx
-        .read()
-        .as_ref()
-        .ok_or("P2P 未启动")?
-        .clone();
+    let cmd_tx = state.cmd_tx.read().as_ref().ok_or("P2P 未启动")?.clone();
 
     cmd_tx
         .send(nodp2p::Command::GetPeers)
@@ -421,11 +389,7 @@ pub fn get_discovered_peers(state: State<P2pState>) -> Result<Vec<(String, Strin
 /// 获取当前节点的 PeerId
 #[tauri::command]
 pub fn get_peer_id(state: State<P2pState>) -> Result<Option<String>, String> {
-    Ok(state
-        .peer_id
-        .read()
-        .as_ref()
-        .map(|p| p.to_string()))
+    Ok(state.peer_id.read().as_ref().map(|p| p.to_string()))
 }
 
 /// 发送文件请求
@@ -441,12 +405,7 @@ pub fn send_file_request(
         .parse::<PeerId>()
         .map_err(|_| "无效PeerID".to_string())?;
 
-    let cmd_tx = state
-        .cmd_tx
-        .read()
-        .as_ref()
-        .ok_or("P2P 未启动")?
-        .clone();
+    let cmd_tx = state.cmd_tx.read().as_ref().ok_or("P2P 未启动")?.clone();
 
     cmd_tx
         .send(nodp2p::Command::SendFileRequest {
@@ -474,12 +433,7 @@ pub fn send_file_chunk(
         .parse::<PeerId>()
         .map_err(|_| "无效PeerID".to_string())?;
 
-    let cmd_tx = state
-        .cmd_tx
-        .read()
-        .as_ref()
-        .ok_or("P2P 未启动")?
-        .clone();
+    let cmd_tx = state.cmd_tx.read().as_ref().ok_or("P2P 未启动")?.clone();
 
     cmd_tx
         .send(nodp2p::Command::SendFileChunk {

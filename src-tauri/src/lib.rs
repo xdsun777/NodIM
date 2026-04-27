@@ -1,10 +1,12 @@
 mod commands;
+mod utils;
+use utils::auth::bio_auth;
 
+use libp2p::PeerId;
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use tokio::sync::mpsc;
-use libp2p::PeerId;
 
 pub struct P2pState {
     /// P2P 命令发送器
@@ -37,6 +39,16 @@ impl Default for P2pState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        // .plugin(tauri_plugin_biometric::init())
+        // .plugin(tauri_plugin_barcode_scanner::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .setup(|app| {
+            // #[cfg(mobile)]
+            // bio_auth(app.handle().clone());
+            Ok(())
+        })
         .manage(P2pState::new())
         .invoke_handler(tauri::generate_handler![
             commands::generate_identity,

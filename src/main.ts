@@ -1,6 +1,6 @@
 // 全局样式
 import './assets/base.css';
-// import '@/assets/iconfont/iconfont.css'
+import '@/assets/iconfont/iconfont.css'
 import '@fontsource/noto-sans-sc';
 
 import IconFont from './components/common/IconFont.vue';
@@ -63,3 +63,5 @@ if (mountPoint) {
 
 // 暴露实例
 export { app, pinia, router };
+
+

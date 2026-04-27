@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { pluginManager } from './core/plugin';
 import { routerManager } from './core/router';
 import BasicLayout from './layouts/BasicLayout.vue';
+import AuthApp from '@/components/auth/AuthPage.vue';
 const routes = [
   {
     path: '/',
@@ -19,6 +20,11 @@ const routes = [
     meta: {
       fullScreen: true, // 告诉布局不要渲染 header / footer
     },
+  },
+  {
+    path: '/auth',
+    name: 'global-auth',
+    component: AuthApp,
   },
   {
     path: '/404',

@@ -14,6 +14,4 @@ const props = defineProps({
 })
 
 const isLogo = props.name === 'logo';
-console.log("lllllllllllllllllllllll:", isLogo);
-
 </script>

@@ -46,7 +46,7 @@
 
     <Transition name="chat-drawer">
       <div v-if="$route.name === 'test-detail'" class="chat-drawer-container">
-        <router-view :key="$route.fullPath" />
+        <!-- <RouterView :key="$route.fullPath" ></RouterView> -->
       </div>
     </Transition>
 

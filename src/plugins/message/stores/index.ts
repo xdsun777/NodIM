@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { chatDB, type Chat as DbSession, type Message as DbMessage, generateId } from '@/utils/preprocessing';
+import { chatDB, type Chat as DbSession, type Message as DbMessage, generateId, getChatId } from '@/utils/preprocessing';
 import { useAppConfigStore } from '@/stores/appConfig';
 import { broadcastMessage, sendPrivate } from '@/p2p/index';
 
@@ -133,7 +133,7 @@ export const useMessageStore = defineStore('message', {
           this.messageList = dbMessages.map((msg) => ({
             id: msg.id,
             content: msg.content,
-            sender: msg.from === myPeerId ? 'me' : 'other',
+            sender: msg.from === myPeerId ? 'me' : ('other' as 'me' | 'other'),
             time: this.formatTime(msg.timestamp),
             type: msg.type,
             fileName: msg.fileName,
@@ -170,7 +170,7 @@ export const useMessageStore = defineStore('message', {
         const newMessages = dbMessages.map((msg) => ({
           id: msg.id,
           content: msg.content,
-          sender: msg.from === myPeerId ? 'me' : 'other',
+          sender: msg.from === myPeerId ? 'me' : ('other' as 'me' | 'other'),
           time: this.formatTime(msg.timestamp),
           type: msg.type,
           fileName: msg.fileName,

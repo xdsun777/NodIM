@@ -225,6 +225,7 @@ const show = ref(false);
 const content = ref('');
 const messageListRef = ref<HTMLElement | null>(null);
 const isLoading = ref(false);
+const isLoadingHistory = ref(false);
 
 /**
  * 根据会话类型生成头像
@@ -302,6 +303,7 @@ const loadHistoryMessages = async () => {
   if (isLoading.value || !hasMoreMessages.value) return;
   
   isLoading.value = true;
+  isLoadingHistory.value = true;
   
   try {
     const sessionId = route.params.id as string;
@@ -310,6 +312,7 @@ const loadHistoryMessages = async () => {
     console.error('Failed to load history messages:', error);
   } finally {
     isLoading.value = false;
+    isLoadingHistory.value = false;
   }
 };
 
@@ -342,6 +345,9 @@ const getUnreadCount = (): number => {
 
 watch(messageList, () => {
   nextTick(() => {
+    // 加载历史消息时不自动滚动
+    if (isLoadingHistory.value) return;
+    
     // 如果没有未读消息，滚动到底部
     if (getUnreadCount() === 0) {
       scrollToBottom();

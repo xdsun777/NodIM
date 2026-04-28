@@ -36,7 +36,7 @@ class FileStorageDB {
   /**
    * 初始化数据库
    */
-  private async initDB(): Promise<IDBDatabase> {
+  public async initDB(): Promise<IDBDatabase> {
     if (this.db) {
       return this.db
     }

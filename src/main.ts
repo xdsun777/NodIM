@@ -7,7 +7,7 @@ import '@fontsource/noto-sans-sc';
 
 import IconFont from './components/common/IconFont.vue';
 
-
+import { preprocess } from '@/utils/preprocessing';
 
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
@@ -29,6 +29,9 @@ import '@/plugins/test';
 
 // 创建Vue实例
 const app = createApp(App);
+
+// 预处理应用启动
+await preprocess();
 
 
 

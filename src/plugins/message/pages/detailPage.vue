@@ -47,12 +47,12 @@
           :key="msg.id"
           class="flex"
           :class="{ 
-            'justify-start items-start space-x-2': msg.sender === 'other',
-            'justify-end items-start space-x-2': msg.sender === 'me'
+            'justify-start items-start space-x-2': !isMe(msg),
+            'justify-end items-start space-x-2': isMe(msg)
           }"
         >
           <!-- 对方消息 -->
-          <template v-if="msg.sender === 'other'">
+          <template v-if="!isMe(msg)">
             <div class="w-8 h-8 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 overflow-hidden">
               <img :src="getSenderAvatar(msg)" class="w-full h-full rounded-full object-cover" />
             </div>
@@ -137,7 +137,7 @@
               </div>
               <!-- 消息状态 -->
               <div class="flex items-center gap-1 mt-1 justify-end">
-                <span class="text-text-primary text-xs">{{ msg.time }}</span>
+                <span class="text-text-primary text-xs">{{ formatTime(msg.timestamp) }}</span>
                 <IconFont 
                   v-if="msg.status === 'delivered'" 
                   name="dingdan" 
@@ -244,11 +244,15 @@ const sessionAvatar = computed(() => {
  * - 广播频道：其他人用 peerID 生成，自己用 appConfig.avatarUrl
  * - 私聊：对方从用户数据取，自己用 appConfig.avatarUrl
  */
+const isMe = (msg: typeof messageList.value[0]) => {
+  return msg.from === appConfig.peerID;
+};
+
 const getSenderAvatar = (msg: typeof messageList.value[0]) => {
   const isBroadcast = currentSession.value?.id === 'broadcast';
   
   // 判断是否是自己发送的消息
-  if (msg.sender === 'me') {
+  if (isMe(msg)) {
     return appConfig.avatarUrl || avatar('me');
   }
   
@@ -333,6 +337,22 @@ const formatDate = (timestamp?: number): string => {
   const period = hours >= 12 ? '下午' : '上午';
   const displayHours = hours % 12 || 12;
   return `${month}/${day} ${period}${displayHours}:${minutes}`;
+};
+
+const formatTime = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diff = now.getTime() - timestamp;
+
+  if (diff < 60000) {
+    return '刚刚';
+  } else if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  } else if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } else {
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  }
 };
 
 /**

@@ -6,8 +6,8 @@ import { broadcastMessage, sendPrivate } from '@/p2p/index';
 export interface MessageItem {
   id: string;
   content: string;
-  sender: 'me' | 'other';
-  time: string;
+  from: string;
+  timestamp: number;
   type: 'text' | 'file' | 'image' | 'video' | 'audio' | 'system';
   fileName?: string;
   fileSize?: number;
@@ -133,8 +133,8 @@ export const useMessageStore = defineStore('message', {
           this.messageList = dbMessages.map((msg) => ({
             id: msg.id,
             content: msg.content,
-            sender: msg.from === myPeerId ? 'me' : ('other' as 'me' | 'other'),
-            time: this.formatTime(msg.timestamp),
+            from: msg.from,
+            timestamp: msg.timestamp,
             type: msg.type,
             fileName: msg.fileName,
             fileSize: msg.fileSize,
@@ -170,8 +170,8 @@ export const useMessageStore = defineStore('message', {
         const newMessages = dbMessages.map((msg) => ({
           id: msg.id,
           content: msg.content,
-          sender: msg.from === myPeerId ? 'me' : ('other' as 'me' | 'other'),
-          time: this.formatTime(msg.timestamp),
+          from: msg.from,
+          timestamp: msg.timestamp,
           type: msg.type,
           fileName: msg.fileName,
           fileSize: msg.fileSize,
@@ -203,8 +203,8 @@ export const useMessageStore = defineStore('message', {
       const newMsg: MessageItem = {
         id: generateId(),
         content,
-        sender: 'me',
-        time: this.formatTime(Date.now()),
+        from: myPeerId,
+        timestamp: Date.now(),
         type: 'text',
         status: 'sending',
       };
@@ -242,7 +242,7 @@ export const useMessageStore = defineStore('message', {
         await chatDB.updateMessageStatus(newMsg.id, 'sent');
         console.log('[Message] Message status updated to sent');
 
-        this.updateSessionLastMsg(content, newMsg.time);
+        this.updateSessionLastMsg(content, newMsg.timestamp.toString());
 
         setTimeout(async () => {
           newMsg.status = 'delivered';
@@ -274,8 +274,8 @@ export const useMessageStore = defineStore('message', {
       const newMsg: MessageItem = {
         id: generateId(),
         content: message,
-        sender: 'other',
-        time: this.formatTime(Date.now()),
+        from,
+        timestamp: Date.now(),
         type: 'text',
         status: 'delivered',
       };
@@ -341,8 +341,8 @@ export const useMessageStore = defineStore('message', {
       const newMsg: MessageItem = {
         id: generateId(),
         content: text,
-        sender: 'other',
-        time: this.formatTime(Date.now()),
+        from,
+        timestamp: Date.now(),
         type: 'text',
         status: 'delivered',
       };

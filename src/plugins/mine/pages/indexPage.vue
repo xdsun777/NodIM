@@ -4,7 +4,7 @@
       <div class="w-24 h-24 rounded-full border-4 border-primary overflow-hidden">
         <img alt="用户头像" class="w-full h-full object-cover" :src="avatarUrl" />
       </div>
-      <h2 class="mt-3 text-xl font-medium text-text-primary">李明</h2>
+      <!-- <h2 class="mt-3 text-xl font-medium text-text-primary">李明</h2> -->
     </div>
 
     <div class="mt-8 px-4">

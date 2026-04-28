@@ -28,6 +28,9 @@ const router = useRouter();
 
 
 onMounted(() => {
+  appConfigStore.setTheme(appConfigStore.theme)
+
+
   if (appConfigStore.lastRoute == '/') {
     appConfigStore.setLastRoute('/message')
   }
@@ -55,4 +58,6 @@ const handleBiometricUnlock = async () => {
 
 
 };
+
+
 </script>

@@ -5,7 +5,7 @@
            flex items-center
            rounded-full
            border-2 border-primary/10 bg-bg-primary/60
-            sm:hidden shadow-lg ">
+            sm:hidden">
     <button v-for="plugin in pluginList" :key="plugin.name" :class="{
       'text-primary': !isActive(plugin.name),
       'bg-primary text-white': isActive(plugin.name),

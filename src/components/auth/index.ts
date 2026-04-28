@@ -9,18 +9,25 @@ const options = {
     fallbackTitle: '抱歉，身份验证失败',
 
     // 仅 Android 平台的功能
-    title: 'NodIM',
+    title: '解锁 NodIM',
     subtitle: '请使用生物识别解锁应用',
     confirmationRequired: true,
 };
 
-export async function authApp() {
-    try {
-        await authenticate('应用已锁定', options);
-        console.log(
-            '应用已解锁'
-        );
-    } catch (err) {
-        console.log('解锁失败： ' + err.message);
-    }
+export function authApp(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+        authenticate('应用已锁定', options)
+            .then(() => {
+                resolve(true);
+            })
+            .catch((err) => {
+                const errorMessage = err instanceof Error 
+                    ? err.message 
+                    : typeof err === 'string' 
+                        ? err 
+                        : JSON.stringify(err, null, 2);
+                console.log('解锁失败:', errorMessage);
+                reject(err);
+            });
+    });
 }

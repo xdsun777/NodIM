@@ -64,11 +64,9 @@ routerManager.setRouter(router);
 import { testPlugin } from '@/plugins/test';
 import { messagePlugin } from '@/plugins/message';
 import { contactPlugin } from '@/plugins/contact'
-// import { settingsPlugin } from '@/plugins/settings'
-// import { minePlugin } from '@/plugins/mine'
+import { minePlugin } from '@/plugins/mine'
 // 批量预注册插件路由
-// const allPlugins = [messagePlugin, contactPlugin, settingsPlugin, minePlugin]
-const allPlugins = [testPlugin, messagePlugin, contactPlugin];
+const allPlugins = [messagePlugin, contactPlugin, minePlugin, testPlugin];
 
 // const allPlugins = [];
 allPlugins.forEach((plugin) => {

@@ -1,6 +1,5 @@
 mod commands;
 mod utils;
-use utils::auth::bio_auth;
 
 use libp2p::PeerId;
 use parking_lot::RwLock;
@@ -41,7 +40,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        // .plugin(tauri_plugin_biometric::init())
+        .plugin(tauri_plugin_biometric::init())
         // .plugin(tauri_plugin_barcode_scanner::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .setup(|app| {

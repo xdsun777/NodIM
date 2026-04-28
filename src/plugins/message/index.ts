@@ -1,11 +1,13 @@
 // src/plugins/message/index.ts
 import type { App } from 'vue';
+import { markRaw } from 'vue'
+
 import type { AppPlugin } from '@/core/plugin/type';
 import { pluginManager } from '@/core/plugin';
 import { routerManager } from '@/core/router';
 import { eventBus } from '@/core/event';
 import { messageRouter } from './router';
-
+import SearchMobile from '@/components/common/Search/SearchMobile.vue'
 // 插件核心定义
 export const messagePlugin: AppPlugin = {
   meta: {
@@ -17,7 +19,7 @@ export const messagePlugin: AppPlugin = {
       leftIcon: 'logo',
       title: 'NodIM',
       rightIcon: 'saoyisao',
-      search:null
+      search:markRaw(SearchMobile)
     }
   },
   router: messageRouter,
@@ -27,7 +29,7 @@ export const messagePlugin: AppPlugin = {
     install(app: App) {
       try {
         // 1. 注册插件路由
-        routerManager.registerPluginRouter('test', messageRouter);
+        routerManager.registerPluginRouter('message', messageRouter);
         
         // 2. 监听全局事件（示例：监听新消息事件）
         eventBus.on(

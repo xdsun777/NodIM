@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen flex-col overflow-hidden sm:flex-row">
+  <div class="flex h-screen flex-col overflow-hidden sm:flex-row bg-[url('@/assets/logo/logo-bg.png')] bg-no-repeat" style="background-size: 120% auto; background-position: -190% 50%;">
     <!-- PC端：Header + Search + TabBar 位于第一列 -->
     <div v-if="$appConfig.platform == 'test' || $appConfig.isDesktop"
       class="hidden sm:flex sm:w-auto sm:flex-col border-r p-4">
@@ -22,7 +22,7 @@
     <!-- 移动端 Header -->
     <HeaderMobile v-if="$appConfig.platform == 'test' || $appConfig.isMobile">
 
-      <template v-slot:rightIcon>
+      <template v-slot:leftIcon>
         <IconFont :name="headerConfig.leftIcon" class="h-6 w-6 font-[1000] text-primary" />
       </template>
 
@@ -30,7 +30,7 @@
         <h1 class="text-xl font-bold">{{ headerConfig.title }}</h1>
       </template>
 
-      <template v-slot:leftIcon>
+      <template v-slot:rightIcon>
         <IconFont :name="headerConfig.rightIcon" class="h-6 w-6 font-[1000] text-primary" />
       </template>
 
@@ -63,7 +63,7 @@
 </template>
 <script setup lang="ts">
 import type { Component } from 'vue'
-import { ref, markRaw } from 'vue'
+import { ref, markRaw,onMounted } from 'vue'
 
 import type { PluginMeta } from '@/core/plugin/type'
 
@@ -74,19 +74,30 @@ import SearchMobile from '@/components/common/Search/SearchMobile.vue'
 import TabBar from '@/components/common/TabBar.vue';
 import TabBarPC from '@/components/common/TabBarPC.vue';
 
+import { pluginManager } from '@/core/plugin/index';
+import { useAppConfigStore } from '@/stores/appConfig/index';
+const appConfig = useAppConfigStore()
 
 interface HeaderData {
   leftIcon: string
   title: string
   rightIcon: string
-  search: Component
+  search: Component | null
 }
 const headerConfig = ref<HeaderData>({
   leftIcon: 'logo',
   title: 'Nodim',
   rightIcon: 'saoyisao',
-  search: markRaw(SearchMobile), // 👈 use markRaw to avoid making the component reactive
+  search: markRaw(SearchMobile), 
 })
+
+onMounted(() => {
+  const pluginName = appConfig.activePlugin
+  // console.log(pluginName);
+  const pluginMeta = pluginManager.getPluginMeta(pluginName)
+  onTabChange(pluginMeta!)
+})
+
 // 监听 TabBar 点击
 const onTabChange = (plugin: PluginMeta) => {
   // ——————————————————
@@ -97,6 +108,8 @@ const onTabChange = (plugin: PluginMeta) => {
   headerConfig.value.rightIcon = plugin.headerData.rightIcon
   if (plugin.headerData.search != null) {
     headerConfig.value.search = markRaw(plugin.headerData.search)
+  } else {
+    headerConfig.value.search = null
   }
 }
 </script>

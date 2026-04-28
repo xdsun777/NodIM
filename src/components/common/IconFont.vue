@@ -1,5 +1,5 @@
 <template>
-  <img v-if="isLogo" :src="logoSvg" class="h-8 w-8" />
+  <img v-if="props.name == 'logo'" :src="logoSvg" class="h-8 w-8" />
   <i v-else class="iconfont" :class="[`icon-${name}`, $attrs.class]" />
 </template>
 
@@ -12,6 +12,4 @@ const props = defineProps({
     required: true
   }
 })
-
-const isLogo = props.name === 'logo';
 </script>

@@ -9,3 +9,17 @@
 // │   ├── call/             # 音视频插件
 // │   ├── settings/         # 设置插件
 // │   └── mine/             # 个人中心插件
+// src/plugins/mine/router.ts
+import type { PluginRouter } from '@/core/plugin/type';
+
+
+export const mineRouter: PluginRouter = {
+  prefix: '/mine',
+  routes: [
+    {
+      path: '/', // plugin-mine-root
+      name: 'mine-index',
+      component: () => import('./pages/indexPage.vue'),
+    },
+  ]
+};

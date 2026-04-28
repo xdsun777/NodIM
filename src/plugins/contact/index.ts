@@ -5,7 +5,8 @@ import { pluginManager } from '@/core/plugin';
 import { routerManager } from '@/core/router';
 import { eventBus } from '@/core/event';
 import { contactRouter } from './router';
-
+import { markRaw } from 'vue'
+import SearchMobile from '@/components/common/Search/SearchMobile.vue'
 // 插件核心定义
 export const contactPlugin: AppPlugin = {
   meta: {
@@ -17,7 +18,7 @@ export const contactPlugin: AppPlugin = {
       leftIcon: 'logo',
       title: '联系人',
       rightIcon: '',
-      search:null
+      search:markRaw(SearchMobile)
     }
   },
   router: contactRouter,

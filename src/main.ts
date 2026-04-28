@@ -24,6 +24,7 @@ import { useAppConfigStore } from '@/stores/appConfig';
 // 导入插件（关键：确保插件被注册）
 import '@/plugins/message';
 import '@/plugins/contact';
+import '@/plugins/mine';
 import '@/plugins/test';
 
 // 创建Vue实例
@@ -45,6 +46,8 @@ pluginManager.setApp(app);
 
 // 安装所有已注册的插件
 pluginManager.getPlugins().forEach((plugin) => {
+  console.log(plugin.meta.name);
+  
   pluginManager.install(plugin.meta.name);
 });
 

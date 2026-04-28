@@ -3,10 +3,7 @@
     <!-- GitHub Logo -->
     <div class="flex flex-col items-center mb-16">
       <div class="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-6">
-        <svg viewBox="0 0 16 16" class="w-14 h-14 text-gray-900" fill="currentColor">
-          <path fill-rule="evenodd"
-            d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.08.58.27 1.03.74 1.09 1.42.10-.06.45-.34.76-.53 2.22-.29 4.55-1.13 4.55-4.95 0-1.09-.39-1.98-1.03-2.68-.10-.17-.44-.72.01-2.64 0 0-.84-.27-2.75 1.02A9.564 9.564 0 008 4.84c-.85.004-1.705.114-2.504.336C3.34 3.54 2.5 5.31 2.5 7.36c0 1.76 1.23 3.29 3.02 3.69.21.04.46-.1.46-.22 0-.10-.01-.35-.01-.64C5.8 10.76 8 11.9 8 11.9c.69 0 1.28-.56 2.05-1.07 1.26-.98 2.38-1.46 2.38-2.85 0-1.68-1.27-3.06-3.06-3.06-1.86 0-3.06 1.17-3.06 2.48 0 .27.09.52.24.74.03.06.04.12.04.18 0 .10-.01.27-.01.49 0 .94-.68 1.8-1.57 2.42-.59.26-1.24.37-1.92.37-.12 0-.24-.06-.35-.12-.01-.14-.44-.43-.63-.63-.03-.06-.06-.12-.06-.21 0-.07.02-.14.06-.21.09-.18.33-.48.42-.63.2-.3.37-.69.37-1.13 0-.68-.42-1.25-.97-1.54-.09-.06-.35-.24-.44-.48-.02-.07-.05-.14-.05-.21 0-.16.12-.32.33-.48.32-.24.74-.36 1.2-.36.46 0 .92.12 1.33.36.21.16.33.32.33.48 0 .07-.03.14-.05.21-.09.24-.35.42-.44.48-.55.29-.97.86-.97 1.54 0 .44.17.83.37 1.13.09.15.24.45.42.63.26.18.48.45.63.63.11.06.23.12.35.12.68 0 1.33-.11 1.92-.37.74-.62 1.57-1.48 1.57-2.42 0-1.31-1.03-2.38-2.38-2.38-1.17 0-2.16.79-2.56 1.88-.11.28-.11.58-.11.88 0 1.37.94 2.5 2.17 2.79.16.03.33.06.5.06.87 0 1.73-.27 2.44-.79C13.71 14.53 16 11.54 16 8c0-4.42-3.58-8-8-8z" />
-        </svg>
+        <IconFont name="logo" class="text-12xl text-gray-900"></IconFont>
       </div>
       <div class="text-2xl font-bold text-white">解锁 GitHub</div>
     </div>
@@ -21,30 +18,42 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { authApp } from '@/components/auth/index.ts'
 import { useAppConfigStore } from '@/stores/appConfig'
 
 const appConfigStore = useAppConfigStore()
 const router = useRouter();
 
-const handleBiometricUnlock = async () => {
-  try {
-    // 调用生物识别 API
-    if ('showSaveFilePicker' in window) {
-      // 这里可以添加生物识别逻辑
-      appConfigStore.auth = true 
-      setTimeout(() => {
-        router.push(appConfigStore.lastRoute);
-      }, 1000);
-      // alert('生物识别解锁功能已触发（演示模式）');
-    } else {
-      console.log('当前浏览器不支持生物识别');
-      alert('当前浏览器不支持生物识别功能');
-    }
-  } catch (error) {
-    console.error('生物识别失败:', error);
-    alert('生物识别失败: ' + error);
+
+onMounted(() => {
+  if (appConfigStore.lastRoute == '/') {
+    appConfigStore.setLastRoute('/message')
   }
+  handleBiometricUnlock()
+})
+
+const handleBiometricUnlock = async () => {
+  const isMobile = appConfigStore.isMobile;
+
+  if (isMobile) {
+    console.log("移动端");
+    console.log("当前路由：" + appConfigStore.lastRoute);
+    authApp().then(() => {
+      appConfigStore.auth = true;
+      router.push(appConfigStore.lastRoute);
+    }).catch(() => {
+      console.log('解锁失败');
+    });
+  }
+  else {
+    appConfigStore.auth = true;
+    router.push(appConfigStore.lastRoute);
+    console.log("PC端");
+
+  }
+
+
 };
-handleBiometricUnlock()
 </script>

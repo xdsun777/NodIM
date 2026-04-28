@@ -7,10 +7,10 @@ import { platform } from '@tauri-apps/plugin-os';
 import type { AppConfig } from './type';
 
 function safePlatform(): string {
-  try {
-    return platform() || 'test';
+  try {    
+    return platform();
   } catch {
-    return 'test';
+    return 'android';
   }
 }
 

@@ -26,12 +26,12 @@
           </IconFont>
           <span class="text-text-primary text-lg font-medium"> 我的二维码 </span>
         </div>
-        <div class="flex items-center px-4 py-4">
+        <!-- <div class="flex items-center px-4 py-4">
           <IconFont name="shezhi"
             class="w-8 h-8 rounded-full text-md font-[1000] text-primary flex items-center justify-center mr-3">
           </IconFont>
           <span class="text-text-primary text-lg font-medium"> 设置 </span>
-        </div>
+        </div> -->
         <div class="flex items-center px-4 py-4" @click="showAbout = true">
           <IconFont name="guanyu"
             class="w-8 h-8 rounded-full text-md font-[1000] text-primary flex items-center justify-center mr-3">

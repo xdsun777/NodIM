@@ -31,10 +31,14 @@ export const useMessageStore = defineStore('message', {
     totalUnread: 0 as number,
     hasMoreMessages: true as boolean,
     currentPage: 0 as number,
+    onlinePeers: new Set<string>(),
   }),
   getters: {
     currentSession: (state) => {
       return state.sessionList.find((item) => item.id === state.currentSessionId) || null;
+    },
+    isPeerOnline: (state) => (peerId: string) => {
+      return state.onlinePeers.has(peerId);
     },
   },
   actions: {
@@ -513,6 +517,18 @@ export const useMessageStore = defineStore('message', {
         console.error('Failed to delete session:', error);
         throw error;
       }
+    },
+
+    setPeerOnline(peerId: string) {
+      this.onlinePeers.add(peerId);
+    },
+
+    setPeerOffline(peerId: string) {
+      this.onlinePeers.delete(peerId);
+    },
+
+    clearOnlinePeers() {
+      this.onlinePeers.clear();
     },
   },
 });

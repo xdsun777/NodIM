@@ -16,7 +16,7 @@
               @click="longPressDeleteSession"
               class="w-full flex items-center gap-3 px-4 py-3 text-error hover:bg-bg-second rounded-lg transition-colors"
             >
-              <IconFont name="delete" class="w-5 h-5" />
+              <IconFont name="a-shanchusousuoye" class="w-5 h-5" />
               <span>删除会话</span>
             </button>
           </div>

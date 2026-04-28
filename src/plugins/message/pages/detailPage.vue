@@ -1,6 +1,6 @@
 <template>
   <Transition name="chat">
-    <div v-show="show" class="chat-page">
+    <div v-show="show" class="chat-page pt-safe">
       <div class="flex items-center p-4 border-b border-border bg-bg-primary">
         <button @click="back" class="p-2 hover:bg-bg-second rounded-lg transition-colors mr-2">
           <IconFont name="a-fanhuiqitaye" class="w-5 h-5 text-text-primary" />
@@ -15,7 +15,7 @@
             </h3>
             <p class="text-xs text-text-primary">
               <span v-if="currentSession?.id === 'broadcast'">广播频道</span>
-              <span v-else>在线</span>
+              <span v-else>{{ isOnline ? '在线' : '离线' }}</span>
             </p>
           </div>
         </div>
@@ -23,9 +23,6 @@
           <IconFont name="more" class="w-5 h-5 text-text-primary" />
         </button>
       </div>
-      <!-- [/MODULE] 3b4_聊天头部 -->
-
-      <!-- [MODULE] 5c6_聊天消息区域 -->
       <div 
         ref="messageListRef" 
         class="flex-1 overflow-y-auto p-4 space-y-4 bg-bg-primary"
@@ -53,16 +50,20 @@
         >
           <!-- 对方消息 -->
           <template v-if="!isMe(msg)">
-            <div class="w-8 h-8 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div 
+              class="w-8 h-8 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer"
+              @click="handleAvatarClick(msg)"
+              @contextmenu.prevent="handleAvatarLongPress(msg)"
+            >
               <img :src="getSenderAvatar(msg)" class="w-full h-full rounded-full object-cover" />
             </div>
             <div class="max-w-xs">
               <!-- 文字消息 -->
-              <div v-if="msg.type === 'text'" class="bg-bg-second text-text-primary p-3 rounded-lg">
+              <div v-if="msg.type === 'text'" class="bg-bg-primary-second text-text-primary p-3 rounded-lg word-break-all">
                 <p>{{ msg.content }}</p>
               </div>
               <!-- 文件消息 -->
-              <div v-else-if="msg.type === 'file'" class="bg-bg-second p-3 rounded-lg">
+              <div v-else-if="msg.type === 'file'" class="bg-bg-primary p-3 rounded-lg">
                 <div class="flex items-center gap-2">
                   <IconFont name="wenjian" class="w-5 h-5 text-text-primary" />
                   <span class="text-text-primary">{{ msg.fileName }}</span>
@@ -70,7 +71,7 @@
                 </div>
               </div>
               <!-- 图片消息 -->
-              <div v-else-if="msg.type === 'image'" class="bg-bg-second p-1 rounded-lg">
+              <div v-else-if="msg.type === 'image'" class="bg-bg-primary p-1 rounded-lg">
                 <img :src="msg.content" class="max-w-[200px] rounded-lg" />
               </div>
               <!-- 视频消息 -->
@@ -90,7 +91,7 @@
                 </div>
               </div>
               <!-- 其他消息类型 -->
-              <div v-else class="bg-bg-second text-text-primary p-3 rounded-lg">
+              <div v-else class="bg-bg-primary text-text-primary p-3 rounded-lg">
                 <span class="text-sm">无法显示的消息类型</span>
               </div>
             </div>
@@ -100,7 +101,7 @@
           <template v-else>
             <div class="max-w-xs">
               <!-- 文字消息 -->
-              <div v-if="msg.type === 'text'" class="bg-primary text-white p-3 rounded-lg">
+              <div v-if="msg.type === 'text'" class="bg-primary text-white p-3 rounded-lg word-break-all">
                 <p>{{ msg.content }}</p>
               </div>
               <!-- 文件消息 -->
@@ -126,7 +127,7 @@
                     <IconFont name="play" class="w-6 h-6 text-white" />
                   </div>
                 </div>
-                <div class="absolute bottom-2 left-2 text-white text-xs">
+                <div class=" absolute bottom-2 left-2 text-white text-xs">
                   <p>{{ msg.fileName }}</p>
                   <p>{{ formatFileSize(msg.fileSize) }}</p>
                 </div>
@@ -177,29 +178,76 @@
           <p class="text-sm mt-2">开始对话吧</p>
         </div>
       </div>
+
+      <!-- 添加联系人弹窗 -->
+      <Teleport to="body">
+        <Transition name="modal">
+          <div 
+            v-if="showContactModal" 
+            class="contact-modal-overlay"
+            @click.self="closeModal"
+          >
+            <div class="contact-modal-content">
+              <h3 class="text-lg font-semibold text-text-primary mb-4 text-center">添加联系人</h3>
+              <div class="flex flex-col items-center mb-4">
+                <div class="w-16 h-16 rounded-full bg-bg-second flex items-center justify-center overflow-hidden mb-3">
+                  <img :src="avatar(selectedPeerId)" class="w-full h-full rounded-full object-cover" />
+                </div>
+                <p class="text-sm text-text-primary break-all text-center">{{ selectedPeerId }}</p>
+              </div>
+              <div class="mb-4">
+                <label class="block text-sm text-text-primary mb-2">设置用户名</label>
+                <input
+                  v-model="userNameInput"
+                  type="text"
+                  class="w-full bg-bg-second text-text-primary rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="输入用户名"
+                  @keyup.enter="addContact"
+                />
+              </div>
+              <div class="flex gap-3">
+                <button 
+                  @click="closeModal" 
+                  class="flex-1 py-2 rounded-lg bg-bg-second text-text-primary hover:bg-bg-third transition-colors"
+                >
+                  取消
+                </button>
+                <button 
+                  @click="addContact" 
+                  class="flex-1 py-2 rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors"
+                >
+                  添加
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
       <!-- [/MODULE] 5c6_聊天消息区域 -->
 
       <!-- [MODULE] 7d8_输入区域 -->
-      <div class="p-4 border-t border-border bg-bg-primary flex items-center">
-        <button class="text-text-primary mr-3">
-          <IconFont name="smile" class="w-6 h-6" />
+      <div class="p-4 border-t border-border bg-bg-primary flex items-end">
+        <button class="text-primary mr-3 mb-2">
+          <IconFont name="a-biaoqing" class="w-6 h-6" />
         </button>
         <div class="flex-1 relative">
-          <input
+          <textarea
             v-model="content"
-            @keyup.enter="send"
-            class="w-full bg-bg-second text-text-primary rounded-full py-2 px-4 focus:outline-none"
+            @keydown.enter.exact.prevent="send"
+            class="w-full bg-bg-second text-text-primary rounded-full py-2 px-4 focus:outline-none resize-none"
             placeholder="输入..."
-            type="text"
+            rows="1"
             @focus="handleInputFocus"
             @blur="handleInputBlur"
-          />
+            @input="autoResize"
+            ref="inputRef"
+          ></textarea>
         </div>
-        <button class="text-text-primary mx-3">
+        <button class="text-primary mx-3 mb-2">
           <IconFont name="add" class="w-6 h-6" />
         </button>
-        <button @click="send" class="text-text-primary">
-          <IconFont name="mic" class="w-6 h-6" />
+        <button @click="send" class="text-primary mb-2">
+          <IconFont name="yuyinshuru" class="w-6 h-6" />
         </button>
       </div>
       <!-- [/MODULE] 7d8_输入区域 -->
@@ -214,6 +262,8 @@ import { storeToRefs } from 'pinia';
 import { useMessageStore } from '../stores/index';
 import { useAppConfigStore } from '@/stores/appConfig';
 import { avatar } from '@/utils/tools';
+import { chatDB } from '@/utils/preprocessing';
+import type { User } from '@/utils/preprocessing';
 
 const route = useRoute();
 const router = useRouter();
@@ -226,6 +276,10 @@ const content = ref('');
 const messageListRef = ref<HTMLElement | null>(null);
 const isLoading = ref(false);
 const isLoadingHistory = ref(false);
+const showContactModal = ref(false);
+const selectedPeerId = ref('');
+const userNameInput = ref('');
+const inputRef = ref<HTMLTextAreaElement | null>(null);
 
 /**
  * 根据会话类型生成头像
@@ -236,7 +290,18 @@ const sessionAvatar = computed(() => {
   if (currentSession.value.id === 'broadcast') {
     return avatar('广播');
   }
+  // 私聊：使用对方的 peerID 生成头像
   return avatar(currentSession.value.id);
+});
+
+/**
+ * 判断对方是否在线
+ */
+const isOnline = computed(() => {
+  if (!currentSession.value || currentSession.value.id === 'broadcast') {
+    return true; // 广播频道默认显示在线
+  }
+  return store.isPeerOnline(currentSession.value.id);
 });
 
 /**
@@ -265,6 +330,59 @@ const getSenderAvatar = (msg: typeof messageList.value[0]) => {
   return avatar(msg.from);
 };
 
+/**
+ * 处理头像点击事件
+ */
+const handleAvatarClick = (msg: typeof messageList.value[0]) => {
+  selectedPeerId.value = msg.from;
+  userNameInput.value = msg.from.substring(0, 8); // 默认使用peerId的前8位作为用户名
+  showContactModal.value = true;
+};
+
+/**
+ * 处理头像长按事件（右键菜单）
+ */
+const handleAvatarLongPress = (msg: typeof messageList.value[0]) => {
+  selectedPeerId.value = msg.from;
+  userNameInput.value = msg.from.substring(0, 8);
+  showContactModal.value = true;
+};
+
+/**
+ * 添加联系人
+ */
+const addContact = async () => {
+  if (!selectedPeerId.value || !userNameInput.value.trim()) return;
+
+  try {
+    const user: User = {
+      id: selectedPeerId.value,
+      name: userNameInput.value.trim(),
+      avatar: avatar(selectedPeerId.value),
+      status: 'offline',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    await chatDB.putUser(user);
+    console.log('Contact added:', user);
+    // alert('联系人添加成功！');
+    showContactModal.value = false;
+  } catch (error) {
+    console.error('Failed to add contact:', error);
+    alert('添加联系人失败');
+  }
+};
+
+/**
+ * 关闭弹窗
+ */
+const closeModal = () => {
+  showContactModal.value = false;
+  selectedPeerId.value = '';
+  userNameInput.value = '';
+};
+
 const handleInputFocus = () => {
   nextTick(() => {
     scrollToBottom();
@@ -272,6 +390,15 @@ const handleInputFocus = () => {
 };
 
 const handleInputBlur = () => {};
+
+/**
+ * 自动调整输入框高度
+ */
+const autoResize = () => {
+  if (!inputRef.value) return;
+  inputRef.value.style.height = 'auto';
+  inputRef.value.style.height = Math.min(inputRef.value.scrollHeight, 120) + 'px';
+};
 
 const scrollToBottom = () => {
   if (messageListRef.value) {
@@ -444,5 +571,58 @@ const send = () => {
 }
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+.word-break-all,
+.break-all {
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+/* 添加联系人弹窗样式 */
+.contact-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+.contact-modal-content {
+  background-color: var(--bg-primary);
+  border-radius: 16px;
+  padding: 24px;
+  width: 320px;
+  margin: 0 16px;
+  position: relative;
+  z-index: 100000;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* 弹窗过渡动画 */
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .contact-modal-content,
+.modal-leave-to .contact-modal-content {
+  transform: scale(0.9);
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-enter-active .contact-modal-content,
+.modal-leave-active .contact-modal-content {
+  transition: transform 0.2s ease;
 }
 </style>

@@ -95,11 +95,13 @@ export function useP2PListener() {
       // 新节点连接（不自动创建私聊会话，只有收到消息时才创建）
       unlisteners.push(await onPeerConnected((peerId) => {
         console.log('[P2P] Peer connected:', peerId);
+        messageStore.setPeerOnline(peerId);
       }));
 
       // 节点断开连接
       unlisteners.push(await onPeerDisconnected((peerId) => {
         console.log('[P2P] Peer disconnected:', peerId);
+        messageStore.setPeerOffline(peerId);
       }));
 
       // 发现新节点

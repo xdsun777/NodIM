@@ -4,7 +4,7 @@
            w-[70vw]
            flex items-center
            rounded-full
-           border-2 border-primary/10 bg-bg-primary/60
+           border-2 border-bg-primary/10 bg-bg-primary/60
             sm:hidden">
     <button v-for="plugin in pluginList" :key="plugin.name" :class="{
       'text-primary': !isActive(plugin.name),

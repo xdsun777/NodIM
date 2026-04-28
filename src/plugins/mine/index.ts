@@ -31,10 +31,9 @@ export const minePlugin: AppPlugin = {
         
         // 2. 监听全局事件（示例：监听新消息事件）
         eventBus.on(
-          'message:new',
-          (msg: { content: string; sessionId: string }) => {
-            console.log('收到新消息：', msg);
-            // 可在此处实现消息推送逻辑
+          'theme:change',
+          (newTheme: 'light' | 'dark' | 'auto') => {
+            console.log('主题切换为：', newTheme);
           },
         );
 
@@ -43,25 +42,17 @@ export const minePlugin: AppPlugin = {
         // app.component('MessageInput', () => import('./components/MessageInput.vue'));
 
       } catch (error) {
-        console.error('❌ message插件安装失败：', error);
+        console.error('❌ mine插件安装失败：', error);
         throw error; // 抛出错误，让插件管理器感知
       }
     },
     // 插件激活时执行
     activate() {
-      eventBus.emit('message:activate');
-
-      // 激活时初始化会话列表（如果尚未初始化）
-      import('./stores/index').then(({ useMineStore }) => {
-        const mineStore = useMineStore();
-        if (mineStore.sessionList.length === 0) {
-          mineStore.initSessionList();
-        }
-      });
+      eventBus.emit('mine:activate');
     },
     // 插件失活时执行
     deactivate() {
-      eventBus.emit('message:deactivate');
+      eventBus.emit('mine:deactivate');
     },
   },
   // 依赖：无（如需依赖其他插件，添加到这里）

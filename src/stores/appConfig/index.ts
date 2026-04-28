@@ -10,12 +10,14 @@ function safePlatform(): string {
   try {    
     return platform();
   } catch {
-    return 'android';
+    return 'test';
   }
 }
 
 export const useAppConfigStore = defineStore('appConfig', () => {
-  const platform = ref<string>(safePlatform());
+  const peerID = ref<string>('');
+  const avatarUrl = ref<string>('');
+  const platform = ref<string>(safePlatform() || 'test');
   const auth = ref<boolean>(false);
   const lastRoute = ref<string>('/');
   const activePlugin = ref<string>('message');
@@ -97,7 +99,17 @@ export const useAppConfigStore = defineStore('appConfig', () => {
     document.documentElement.classList.toggle('dark', isDarkMode.value);
   }
 
+  function setPeerID(id: string) {
+    peerID.value = id;
+  }
+
+  function setAvatarUrl(url: string) {
+    avatarUrl.value = url;
+  }
+
   function resetToDefaults() {
+    peerID.value = '';
+    avatarUrl.value = '';
     lastRoute.value = '/';
     activePlugin.value = 'message';
     theme.value = 'auto';
@@ -117,21 +129,26 @@ export const useAppConfigStore = defineStore('appConfig', () => {
       readReceipts: true,
     };
     autoLogin.value = false;
+    updateThemeClass();
   }
 
   function loadConfig(config: Partial<AppConfig>) {
-    if (config.lastRoute) lastRoute.value = config.lastRoute;
-    if (config.activePlugin) activePlugin.value = config.activePlugin;
-    if (config.theme) theme.value = config.theme;
-    if (config.language) language.value = config.language;
-    if (config.notifications) notifications.value = { ...notifications.value, ...config.notifications };
-    if (config.appearance) appearance.value = { ...appearance.value, ...config.appearance };
-    if (config.privacy) privacy.value = { ...privacy.value, ...config.privacy };
+    if (config.peerID !== undefined) peerID.value = config.peerID;
+    if (config.avatarUrl !== undefined) avatarUrl.value = config.avatarUrl;
+    if (config.lastRoute !== undefined) lastRoute.value = config.lastRoute;
+    if (config.activePlugin !== undefined) activePlugin.value = config.activePlugin;
+    if (config.theme !== undefined) theme.value = config.theme;
+    if (config.language !== undefined) language.value = config.language;
+    if (config.notifications !== undefined) notifications.value = { ...notifications.value, ...config.notifications };
+    if (config.appearance !== undefined) appearance.value = { ...appearance.value, ...config.appearance };
+    if (config.privacy !== undefined) privacy.value = { ...privacy.value, ...config.privacy };
     if (config.autoLogin !== undefined) autoLogin.value = config.autoLogin;
     updateThemeClass();
   }
 
   return {
+    peerID,
+    avatarUrl,
     platform,
     auth,
     lastRoute,
@@ -158,12 +175,14 @@ export const useAppConfigStore = defineStore('appConfig', () => {
     updateThemeClass,
     resetToDefaults,
     loadConfig,
+    setPeerID,
+    setAvatarUrl,
   };
 }, {
   persist: {
     key: 'nodim-app-config',
     storage: localStorage,
-    pick: ['platform', 'lastRoute', 'activePlugin', 'theme', 'language', 'notifications', 'appearance', 'privacy', 'autoLogin', 'version'],
+    pick: ['peerID', 'avatarUrl', 'platform', 'lastRoute', 'activePlugin', 'theme', 'language', 'notifications', 'appearance', 'privacy', 'autoLogin', 'version'],
   },
 });
 

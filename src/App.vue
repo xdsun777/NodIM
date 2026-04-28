@@ -1,6 +1,6 @@
 <!-- src/App.vue -->
 <template>
-  <RouterView></RouterView>
+  <RouterView class="bg-bg-primary text-text-primary"></RouterView>
 </template>
 
 <script setup lang="ts">

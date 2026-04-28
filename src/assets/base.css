@@ -19,14 +19,14 @@
 
 }
 
-html.red {
-  --color-primary: rgb(239 68 68);
-  /* 红色主题 */
-}
-
-html.blue {
-  --color-primary: rgb(59 130 246);
-  /* 蓝色主题 */
+html.dark {
+  --color-primary: #a78bfa;
+  --color-primary-second: #4b5563;
+  --color-bg: #111827;
+  --color-bg-second: #1f2937;
+  --color-text: #f9fafb;
+  --color-text-second: #9ca3af;
+  --color-border: #374151;
 }
 
 @layer utilities {

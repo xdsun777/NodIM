@@ -1,5 +1,8 @@
 // 应用配置类型定义
 export interface AppConfig {
+    // 用户ID
+    peerID: string;
+    avatarUrl: string;
     // 平台
     platform: string;
     // 验证

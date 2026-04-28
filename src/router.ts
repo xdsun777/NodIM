@@ -22,7 +22,7 @@ const routes = [
   {
     path: '/chat/:id',
     name: 'global-chat',
-    component: () => import('@/plugins/test/pages/detailPage.vue'),
+    component: () => import('@/plugins/message/pages/detailPage.vue'),
     meta: {
       fullScreen: true, // 告诉布局不要渲染 header / footer
     },

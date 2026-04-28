@@ -26,12 +26,12 @@ import '@/plugins/message';
 import '@/plugins/contact';
 import '@/plugins/mine';
 import '@/plugins/test';
+import { useP2PListener } from '@/plugins/p2pListener';
 
 // 创建Vue实例
 const app = createApp(App);
 
-// 预处理应用启动
-await preprocess();
+
 
 
 
@@ -68,7 +68,13 @@ if (mountPoint) {
   );
 }
 
+// 预处理应用启动（数据库初始化）
+await preprocess();
+
+// 初始化全局 P2P 事件监听器（后台持续监听广播消息）
+// initialize 方法会先启动 P2P 网络，再注册事件监听器
+const { initialize } = useP2PListener();
+await initialize();
+
 // 暴露实例
 export { app, pinia, router };
-
-

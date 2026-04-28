@@ -1,5 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
-import { listen, UnlistenFn } from '@tauri-apps/api/event'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+
+export type { UnlistenFn }
 
 // ==============================
 // 数据类型定义

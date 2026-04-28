@@ -1,6 +1,7 @@
 /**
  * 程序预处理模块
  * 负责初始化数据库、创建表结构、加载配置等
+ * P2P 初始化已移至 @/plugins/p2pListener
  */
 
 import { fileStorageDB } from './fileStorageDB'
@@ -360,9 +361,12 @@ class ChatDatabase {
   }
 
   /**
-   * 获取会话的所有消息（按时间排序）
+   * 获取会话的消息（支持分页）
+   * @param chatId 会话ID
+   * @param offset 偏移量（可选）
+   * @param limit 每页数量（可选）
    */
-  async getMessagesByChat(chatId: string, limit?: number): Promise<Message[]> {
+  async getMessagesByChat(chatId: string, offset?: number, limit?: number): Promise<Message[]> {
     const db = await this.ensureDB()
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE_MESSAGES, 'readonly')
@@ -374,10 +378,61 @@ class ChatDatabase {
       request.onsuccess = () => {
         let messages = request.result || []
         messages.sort((a, b) => a.timestamp - b.timestamp)
-        if (limit && messages.length > limit) {
-          messages = messages.slice(-limit)
+        
+        // 应用分页
+        if (offset !== undefined && offset > 0) {
+          messages = messages.slice(offset)
         }
+        if (limit !== undefined && messages.length > limit) {
+          messages = messages.slice(0, limit)
+        }
+        
         resolve(messages)
+      }
+    })
+  }
+
+  /**
+   * 获取最新的N条消息
+   * @param chatId 会话ID
+   * @param count 获取的消息数量
+   */
+  async getLatestMessages(chatId: string, count: number): Promise<Message[]> {
+    const db = await this.ensureDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_MESSAGES, 'readonly')
+      const store = tx.objectStore(STORE_MESSAGES)
+      const index = store.index('chatId')
+      const request = index.getAll(IDBKeyRange.only(chatId))
+      
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        let messages = request.result || []
+        messages.sort((a, b) => a.timestamp - b.timestamp)
+        
+        if (messages.length > count) {
+          messages = messages.slice(-count)
+        }
+        
+        resolve(messages)
+      }
+    })
+  }
+
+  /**
+   * 获取消息总数
+   */
+  async getMessageCount(chatId: string): Promise<number> {
+    const db = await this.ensureDB()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_MESSAGES, 'readonly')
+      const store = tx.objectStore(STORE_MESSAGES)
+      const index = store.index('chatId')
+      const request = index.count(IDBKeyRange.only(chatId))
+      
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        resolve(request.result || 0)
       }
     })
   }
@@ -522,25 +577,19 @@ export function getChatId(peerId: string, type: 'private' | 'broadcast'): string
 
 /**
  * 应用启动预处理
+ * P2P 初始化已移至 @/plugins/p2pListener
  */
 export async function preprocess(): Promise<void> {
-  console.log('Starting application preprocessing...')
+  console.log('开始预处理...')
   
   try {
     // 初始化数据库
     await initDatabases()
+    console.log('✓ 数据库初始化完成')
     
-    // 可以在这里添加其他预处理逻辑：
-    // - 加载用户配置
-    // - 恢复会话状态
-    // - 检查更新
-      // - 初始化 P2P 连接等
-      
-    
-    
-    console.log('Preprocessing completed successfully')
+    console.log('预处理完成')
   } catch (error) {
-    console.error('Preprocessing failed:', error)
+    console.error('预处理失败:', error)
     throw error
   }
 }

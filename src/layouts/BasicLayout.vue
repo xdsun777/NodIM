@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen flex-col overflow-hidden sm:flex-row bg-[url('@/assets/logo/logo-bg.png')] bg-no-repeat" style="background-size: 120% auto; background-position: -190% 50%;">
+  <div class="flex h-screen bg-bg-primary text-text-primary flex-col overflow-hidden sm:flex-row bg-[url('@/assets/logo/logo-bg.png')] bg-no-repeat" style="background-size: 120% auto; background-position: -190% 50%;">
     <!-- PC端：Header + Search + TabBar 位于第一列 -->
     <div v-if="$appConfig.platform == 'test' || $appConfig.isDesktop"
       class="hidden sm:flex sm:w-auto sm:flex-col border-r p-4">

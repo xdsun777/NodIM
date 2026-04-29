@@ -159,7 +159,7 @@ class FileStorageDB {
   }
 
   /**
-   * 保存文件块数据
+   * 保存文件块数据（Base64 格式，用于接收端）
    */
   async saveChunk(
     transferId: number,
@@ -192,11 +192,24 @@ class FileStorageDB {
       throw new Error(`Failed to decode Base64: ${error}`)
     }
 
+    return this.saveChunkBinary(transferId, chunkIndex, bytes)
+  }
+
+  /**
+   * 保存文件块数据（Uint8Array 格式，用于发送端）
+   */
+  async saveChunkBinary(
+    transferId: number,
+    chunkIndex: number,
+    data: Uint8Array
+  ): Promise<void> {
+    const db = await this.ensureDB()
+
     const chunk: FileChunk = {
       id: `${transferId}-${chunkIndex}`,
       transferId,
       chunkIndex,
-      data: bytes,
+      data,
       timestamp: Date.now(),
     }
 
@@ -211,7 +224,7 @@ class FileStorageDB {
           reject(request.error)
         }
         request.onsuccess = () => {
-          console.log(`Chunk saved: ${chunk.id} (${bytes.length} bytes)`)
+          console.log(`Chunk saved: ${chunk.id} (${data.length} bytes)`)
           resolve()
         }
 
@@ -327,22 +340,44 @@ class FileStorageDB {
     const db = await this.ensureDB()
     const chunks: FileChunk[] = []
 
+    console.log('[FileStorageDB] getAllChunks called with transferId:', transferId)
+
     return new Promise((resolve, reject) => {
       try {
         const tx = db.transaction(STORE_NAME, 'readonly')
         const store = tx.objectStore(STORE_NAME)
+        
+        // 检查索引是否存在
+        if (!store.indexNames.contains('transferId')) {
+          console.error('[FileStorageDB] Index transferId does not exist')
+          reject(new Error('Index transferId does not exist'))
+          return
+        }
+        
         const index = store.index('transferId')
         const request = index.getAll(transferId)
 
-        request.onerror = () => reject(request.error)
+        request.onerror = () => {
+          console.error('[FileStorageDB] getAllChunks error:', request.error)
+          reject(request.error)
+        }
         request.onsuccess = () => {
-          chunks.push(...(request.result as FileChunk[]))
+          const results = request.result as FileChunk[]
+          console.log('[FileStorageDB] getAllChunks results count:', results.length)
+          
+          if (results.length === 0) {
+            console.warn('[FileStorageDB] No chunks found for transferId:', transferId)
+          }
+          
+          chunks.push(...results)
 
           // 按块索引排序
           chunks.sort((a, b) => a.chunkIndex - b.chunkIndex)
 
           // 合并所有块数据
           const totalLength = chunks.reduce((sum, chunk) => sum + chunk.data.length, 0)
+          console.log('[FileStorageDB] Total data length:', totalLength)
+          
           const combined = new Uint8Array(totalLength)
 
           let offset = 0
@@ -351,11 +386,11 @@ class FileStorageDB {
             offset += chunk.data.length
           }
 
-          console.log(`All chunks combined: ${combined.length} bytes from ${chunks.length} chunks`)
+          console.log(`[FileStorageDB] All chunks combined: ${combined.length} bytes from ${chunks.length} chunks`)
           resolve(combined)
         }
       } catch (error) {
-        console.error('Error in getAllChunks:', error)
+        console.error('[FileStorageDB] Error in getAllChunks:', error)
         reject(error)
       }
     })

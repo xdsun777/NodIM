@@ -10,7 +10,7 @@ import { fileStorageDB } from './fileStorageDB'
 // 数据库名称和版本
 // ------------------------------
 const DB_NAME = 'NodIM-Chat'
-const DB_VERSION = 1
+const DB_VERSION = 1  // 版本升级：添加 transferId 索引
 
 // ------------------------------
 // 存储对象名称
@@ -74,6 +74,7 @@ export interface Message {
   content: string         // 消息内容（文本消息为内容，文件消息为文件ID）
   fileName?: string       // 文件名（文件消息）
   fileSize?: number       // 文件大小（文件消息）
+  transferId?: number     // 文件传输ID（用于从fileStorageDB获取文件）
   status: MessageStatus   // 消息状态
   timestamp: number       // 发送时间
   isSelf: boolean         // 是否是自己发送的
@@ -118,6 +119,7 @@ class ChatDatabase {
           console.log('Chat database upgrade needed')
           try {
             const db = (event.target as IDBOpenDBRequest).result
+            const oldVersion = event.oldVersion
 
             // 创建用户表
             if (!db.objectStoreNames.contains(STORE_USERS)) {
@@ -136,15 +138,45 @@ class ChatDatabase {
               console.log('Chats store created')
             }
 
-            // 创建消息表
+            // 创建消息表（严格按照 Message 接口定义）
             if (!db.objectStoreNames.contains(STORE_MESSAGES)) {
               const msgStore = db.createObjectStore(STORE_MESSAGES, { keyPath: 'id' })
+              // 必需字段索引
               msgStore.createIndex('chatId', 'chatId', { unique: false })
               msgStore.createIndex('from', 'from', { unique: false })
               msgStore.createIndex('to', 'to', { unique: false })
-              msgStore.createIndex('timestamp', 'timestamp', { unique: false })
+              msgStore.createIndex('type', 'type', { unique: false })
               msgStore.createIndex('status', 'status', { unique: false })
-              console.log('Messages store created')
+              msgStore.createIndex('timestamp', 'timestamp', { unique: false })
+              msgStore.createIndex('isSelf', 'isSelf', { unique: false })
+              // 文件消息相关字段索引
+              msgStore.createIndex('fileName', 'fileName', { unique: false })
+              msgStore.createIndex('fileSize', 'fileSize', { unique: false })
+              msgStore.createIndex('transferId', 'transferId', { unique: false })
+              console.log('Messages store created with all required indexes')
+            } else if (oldVersion < 2) {
+              // 版本升级：添加 transferId 索引
+              const msgStore = db.transaction(STORE_MESSAGES, 'readwrite').objectStore(STORE_MESSAGES)
+              if (!msgStore.indexNames.contains('transferId')) {
+                msgStore.createIndex('transferId', 'transferId', { unique: false })
+                console.log('Added transferId index to Messages store')
+              }
+              if (!msgStore.indexNames.contains('fileName')) {
+                msgStore.createIndex('fileName', 'fileName', { unique: false })
+                console.log('Added fileName index to Messages store')
+              }
+              if (!msgStore.indexNames.contains('fileSize')) {
+                msgStore.createIndex('fileSize', 'fileSize', { unique: false })
+                console.log('Added fileSize index to Messages store')
+              }
+              if (!msgStore.indexNames.contains('type')) {
+                msgStore.createIndex('type', 'type', { unique: false })
+                console.log('Added type index to Messages store')
+              }
+              if (!msgStore.indexNames.contains('isSelf')) {
+                msgStore.createIndex('isSelf', 'isSelf', { unique: false })
+                console.log('Added isSelf index to Messages store')
+              }
             }
           } catch (error) {
             console.error('Error during chat database upgrade:', error)

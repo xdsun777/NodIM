@@ -13,15 +13,96 @@ import {
   onFileChunk,
   onFileReceived,
   type DiscoveredPeer,
-  type FileChunkPayload
+  type FileChunkPayload,
+  type FileReceivedPayload
 } from '@/p2p/index';
 import { useMessageStore } from '@/plugins/message/stores/index';
 import { fileStorageDB } from '@/utils/fileStorageDB';
+
+// 文件类型映射
+const MIME_TYPES: Record<string, string> = {
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'gif': 'image/gif',
+  'webp': 'image/webp',
+  'bmp': 'image/bmp',
+  'svg': 'image/svg+xml',
+  'pdf': 'application/pdf',
+  'txt': 'text/plain',
+  'html': 'text/html',
+  'css': 'text/css',
+  'js': 'application/javascript',
+  'json': 'application/json',
+  'xml': 'application/xml',
+  'mp3': 'audio/mpeg',
+  'wav': 'audio/wav',
+  'ogg': 'audio/ogg',
+  'mp4': 'video/mp4',
+  'mov': 'video/quicktime',
+  'avi': 'video/x-msvideo',
+  'webm': 'video/webm',
+  'zip': 'application/zip',
+  'rar': 'application/x-rar-compressed',
+  '7z': 'application/x-7z-compressed',
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'ppt': 'application/vnd.ms-powerpoint',
+  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+};
+
+/**
+ * 根据文件名获取消息类型
+ */
+function getMessageType(fileName: string): 'text' | 'file' | 'image' | 'video' | 'audio' | 'system' {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  const mimeType = MIME_TYPES[extension] || '';
+  
+  if (mimeType.startsWith('image/')) {
+    return 'image';
+  } else if (mimeType.startsWith('video/')) {
+    return 'video';
+  } else if (mimeType.startsWith('audio/')) {
+    return 'audio';
+  } else if (mimeType.startsWith('text/')) {
+    return 'text';
+  } else {
+    return 'file';
+  }
+}
+
+/**
+ * 根据文件名获取 MIME 类型
+ */
+function getMimeType(fileName: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  return MIME_TYPES[extension] || 'application/octet-stream';
+}
+
+/**
+ * 将 Uint8Array 转换为 Base64 字符串（分块处理避免调用栈溢出）
+ */
+function uint8ArrayToBase64(data: Uint8Array): string {
+  const chunkSize = 8192; // 每块处理 8KB
+  let result = '';
+  
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const chunk = data.subarray(i, Math.min(i + chunkSize, data.length));
+    result += btoa(String.fromCharCode(...chunk));
+  }
+  
+  return result;
+}
 
 
 let isInitialized = false;
 let isP2PStarted = false;
 const unlisteners: (() => void)[] = [];
+
+// 文件传输映射：fileName -> { peer, transferId }
+const fileTransferMap = new Map<string, { peer: string; transferId: number }>();
 
 /**
  * 全局 P2P 事件监听服务
@@ -134,6 +215,12 @@ export function useP2PListener() {
       // 文件请求
       unlisteners.push(await onFileRequest(async (payload) => {
         console.log('[P2P] File request:', payload);
+        
+        // 保存文件传输映射
+        const mapKey = `${payload.peer}-${payload.fileName}`;
+        fileTransferMap.set(mapKey, { peer: payload.peer, transferId: payload.transferId });
+        console.log('[P2P] File transfer map saved:', mapKey, payload.transferId);
+        
         await fileStorageDB.createTransfer(
           payload.peer,
           payload.transferId,
@@ -173,9 +260,117 @@ export function useP2PListener() {
         }
       }));
 
-      // 文件接收完成
-      unlisteners.push(await onFileReceived((payload) => {
+      // 文件接收完成（文件已通过 onFileChunk 保存，这里只处理消息通知）
+      unlisteners.push(await onFileReceived(async (payload: FileReceivedPayload) => {
         console.log('[P2P] File received:', payload.fileName, payload.fileSize);
+        
+        try {
+          // 根据文件名确定消息类型
+          const messageType = getMessageType(payload.fileName);
+          const mimeType = getMimeType(payload.fileName);
+          
+          // 从映射中获取 transferId
+          const mapKey = `${payload.peer}-${payload.fileName}`;
+          const transferInfo = fileTransferMap.get(mapKey);
+          const transferId = transferInfo?.transferId || Date.now();
+          console.log('[P2P] File transfer ID retrieved:', transferId);
+          
+          // 根据消息类型处理
+          if (messageType === 'image') {
+            // 图片消息 - 创建预览 URL
+            const binaryString = atob(payload.dataBase64);
+            const binaryData = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              binaryData[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([binaryData], { type: mimeType });
+            const contentUrl = URL.createObjectURL(blob);
+            
+            await messageStore.handlePrivateMessage(
+              payload.peer, 
+              JSON.stringify({
+                type: 'image',
+                url: contentUrl,
+                fileName: payload.fileName,
+                transferId
+              })
+            );
+          } else if (messageType === 'video') {
+            // 视频消息 - 创建预览 URL
+            const binaryString = atob(payload.dataBase64);
+            const binaryData = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              binaryData[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([binaryData], { type: mimeType });
+            const contentUrl = URL.createObjectURL(blob);
+            
+            await messageStore.handlePrivateMessage(
+              payload.peer, 
+              JSON.stringify({
+                type: 'video',
+                url: contentUrl,
+                fileName: payload.fileName,
+                fileSize: payload.fileSize,
+                transferId
+              })
+            );
+          } else if (messageType === 'audio') {
+            // 音频消息 - 创建预览 URL
+            const binaryString = atob(payload.dataBase64);
+            const binaryData = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              binaryData[i] = binaryString.charCodeAt(i);
+            }
+            const blob = new Blob([binaryData], { type: mimeType });
+            const contentUrl = URL.createObjectURL(blob);
+            
+            await messageStore.handlePrivateMessage(
+              payload.peer, 
+              JSON.stringify({
+                type: 'audio',
+                url: contentUrl,
+                fileName: payload.fileName,
+                fileSize: payload.fileSize,
+                transferId
+              })
+            );
+          } else if (messageType === 'text') {
+            // 文本文件消息
+            const binaryString = atob(payload.dataBase64);
+            const binaryData = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              binaryData[i] = binaryString.charCodeAt(i);
+            }
+            const contentUrl = new TextDecoder().decode(binaryData);
+            
+            await messageStore.handlePrivateMessage(
+              payload.peer, 
+              JSON.stringify({
+                type: 'textfile',
+                content: contentUrl,
+                fileName: payload.fileName,
+                transferId
+              })
+            );
+          } else {
+            // 其他文件消息
+            await messageStore.handlePrivateMessage(
+              payload.peer, 
+              JSON.stringify({
+                type: 'file',
+                transferId,
+                fileName: payload.fileName,
+                fileSize: payload.fileSize
+              })
+            );
+          }
+          
+          console.log('[P2P] File message processed successfully');
+          
+        } catch (error) {
+          console.error('[P2P] Failed to process received file:', error);
+        }
       }));
 
       isInitialized = true;

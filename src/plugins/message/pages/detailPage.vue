@@ -6,7 +6,8 @@
           <IconFont name="a-fanhuiqitaye" class="w-5 h-5 text-text-primary" />
         </button>
         <div class="flex items-center" style="justify-content:start;gap:0px">
-          <div class="w-10 h-10 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 mr-3 overflow-hidden">
+          <div
+            class="w-10 h-10 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 mr-3 overflow-hidden">
             <img :src="sessionAvatar" class="w-full h-full rounded-full object-cover" />
           </div>
           <div>
@@ -23,62 +24,58 @@
           <IconFont name="more" class="w-5 h-5 text-text-primary" />
         </button>
       </div>
-      <div 
-        ref="messageListRef" 
-        class="flex-1 overflow-y-auto p-4 space-y-4 bg-bg-primary"
-        @scroll="handleScroll"
-      >
+      <div ref="messageListRef" class="flex-1 overflow-y-auto p-4 space-y-4 bg-bg-primary" @scroll="handleScroll">
         <!-- 加载更多提示 -->
         <div v-if="isLoading" class="text-center text-xs text-text-primary py-2">
           <IconFont name="loading" class="w-4 h-4 inline-block animate-spin" />
           <span class="ml-1">加载历史消息...</span>
         </div>
-        
+
         <!-- 时间戳 -->
         <div v-if="messageList.length > 0" class="text-center text-xs text-text-primary">
           {{ formatDate(messageList[0]?.timestamp) }}
         </div>
 
-        <div
-          v-for="(msg, index) in messageList"
-          :key="msg.id"
-          class="flex"
-          :class="{ 
-            'justify-start items-start space-x-2': !isMe(msg),
-            'justify-end items-start space-x-2': isMe(msg)
-          }"
-        >
+        <div v-for="(msg, index) in messageList" :key="msg.id" class="flex" :class="{
+          'justify-start items-start space-x-2': !isMe(msg),
+          'justify-end items-start space-x-2': isMe(msg)
+        }">
           <!-- 对方消息 -->
           <template v-if="!isMe(msg)">
-            <div 
+            <div
               class="w-8 h-8 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer"
-              @click="handleAvatarClick(msg)"
-              @contextmenu.prevent="handleAvatarLongPress(msg)"
-            >
+              @click="handleAvatarClick(msg)" @contextmenu.prevent="handleAvatarLongPress(msg)">
               <img :src="getSenderAvatar(msg)" class="w-full h-full rounded-full object-cover" />
             </div>
             <div class="max-w-xs">
               <!-- 文字消息 -->
-              <div v-if="msg.type === 'text'" class="bg-bg-primary-second text-text-primary p-3 rounded-lg word-break-all">
+              <div v-if="msg.type === 'text'"
+                class="bg-bg-primary-second text-text-primary p-3 rounded-lg word-break-all">
                 <p>{{ msg.content }}</p>
               </div>
               <!-- 文件消息 -->
-              <div v-else-if="msg.type === 'file'" class="bg-bg-primary p-3 rounded-lg">
+              <div v-else-if="msg.type === 'file'"
+                class="bg-bg-primary p-3 rounded-lg cursor-pointer hover:bg-bg-second transition-colors"
+                @click="downloadFile(msg.fileName || '', msg.transferId)">
                 <div class="flex items-center gap-2">
                   <IconFont name="wenjian" class="w-5 h-5 text-text-primary" />
-                  <span class="text-text-primary">{{ msg.fileName }}</span>
+                  <span class="text-text-primary truncate max-w-[150px]">{{ msg.fileName }}</span>
                   <span class="text-text-primary text-xs">{{ formatFileSize(msg.fileSize) }}</span>
                 </div>
+                <p class="text-xs text-text-secondary mt-1">点击下载</p>
               </div>
               <!-- 图片消息 -->
-              <div v-else-if="msg.type === 'image'" class="bg-bg-primary p-1 rounded-lg">
+              <div v-else-if="msg.type === 'image'" class="bg-bg-primary p-1 rounded-lg cursor-pointer"
+                @click="previewFile(msg.fileName || '', msg.transferId)">
                 <img :src="msg.content" class="max-w-[200px] rounded-lg" />
               </div>
               <!-- 视频消息 -->
-              <div v-else-if="msg.type === 'video'" class="relative">
-                <img
-                  :src="msg.content"
+              <div v-else-if="msg.type === 'video'" class="relative cursor-pointer"
+                @click="previewFile(msg.fileName || '', msg.transferId)">
+                <video 
+                  :src="msg.content" 
                   class="w-full h-48 object-cover rounded-lg"
+                  poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'%3E%3Crect fill='%231a1a2e' width='200' height='150'/%3E%3Ctext fill='%23fff' font-family='sans-serif' font-size='14' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E视频文件%3C/text%3E%3C/svg%3E"
                 />
                 <div class="absolute inset-0 flex items-center justify-center">
                   <div class="bg-black bg-opacity-50 rounded-full p-3">
@@ -105,29 +102,35 @@
                 <p>{{ msg.content }}</p>
               </div>
               <!-- 文件消息 -->
-              <div v-else-if="msg.type === 'file'" class="bg-primary p-3 rounded-lg">
+              <div v-else-if="msg.type === 'file'"
+                class="bg-primary p-3 rounded-lg cursor-pointer hover:bg-primary/80 transition-colors"
+                @click="downloadFile(msg.fileName || '', msg.transferId)">
                 <div class="flex items-center gap-2">
                   <IconFont name="wenjian" class="w-5 h-5 text-white" />
-                  <span class="text-white">{{ msg.fileName }}</span>
+                  <span class="text-white truncate max-w-[150px]">{{ msg.fileName }}</span>
                   <span class="text-white/70 text-xs">{{ formatFileSize(msg.fileSize) }}</span>
                 </div>
+                <p class="text-xs text-white/50 mt-1">点击下载</p>
               </div>
               <!-- 图片消息 -->
-              <div v-else-if="msg.type === 'image'" class="bg-primary p-1 rounded-lg">
+              <div v-else-if="msg.type === 'image'" class="bg-primary p-1 rounded-lg cursor-pointer"
+                @click="previewFile(msg.fileName || '', msg.transferId)">
                 <img :src="msg.content" class="max-w-[200px] rounded-lg" />
               </div>
               <!-- 视频消息 -->
-              <div v-else-if="msg.type === 'video'" class="relative">
-                <img
-                  :src="msg.content"
+              <div v-else-if="msg.type === 'video'" class="relative cursor-pointer"
+                @click="previewFile(msg.fileName || '', msg.transferId)">
+                <video 
+                  :src="msg.content" 
                   class="w-full h-48 object-cover rounded-lg"
+                  poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 150'%3E%3Crect fill='%231a1a2e' width='200' height='150'/%3E%3Ctext fill='%23fff' font-family='sans-serif' font-size='14' x='50%25' y='50%25' text-anchor='middle' dominant-baseline='middle'%3E视频文件%3C/text%3E%3C/svg%3E"
                 />
                 <div class="absolute inset-0 flex items-center justify-center">
                   <div class="bg-black bg-opacity-50 rounded-full p-3">
                     <IconFont name="play" class="w-6 h-6 text-white" />
                   </div>
                 </div>
-                <div class=" absolute bottom-2 left-2 text-white text-xs">
+                <div class="absolute bottom-2 left-2 text-white text-xs">
                   <p>{{ msg.fileName }}</p>
                   <p>{{ formatFileSize(msg.fileSize) }}</p>
                 </div>
@@ -139,34 +142,16 @@
               <!-- 消息状态 -->
               <div class="flex items-center gap-1 mt-1 justify-end">
                 <span class="text-text-primary text-xs">{{ formatTime(msg.timestamp) }}</span>
-                <IconFont 
-                  v-if="msg.status === 'delivered'" 
-                  name="dingdan" 
-                  class="w-3 h-3 text-text-primary"
-                />
-                <IconFont 
-                  v-else-if="msg.status === 'sent'" 
-                  name="duigou" 
-                  class="w-3 h-3 text-text-primary"
-                />
-                <IconFont 
-                  v-else-if="msg.status === 'read'" 
-                  name="duigou" 
-                  class="w-3 h-3 text-primary"
-                />
-                <IconFont 
-                  v-else-if="msg.status === 'sending'" 
-                  name="loading" 
-                  class="w-3 h-3 text-text-primary animate-spin"
-                />
-                <IconFont 
-                  v-else-if="msg.status === 'failed'" 
-                  name="cuowu" 
-                  class="w-3 h-3 text-error"
-                />
+                <IconFont v-if="msg.status === 'delivered'" name="dingdan" class="w-3 h-3 text-text-primary" />
+                <IconFont v-else-if="msg.status === 'sent'" name="duigou" class="w-3 h-3 text-text-primary" />
+                <IconFont v-else-if="msg.status === 'read'" name="duigou" class="w-3 h-3 text-primary" />
+                <IconFont v-else-if="msg.status === 'sending'" name="loading"
+                  class="w-3 h-3 text-text-primary animate-spin" />
+                <IconFont v-else-if="msg.status === 'failed'" name="cuowu" class="w-3 h-3 text-error" />
               </div>
             </div>
-            <div class="w-8 h-8 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 overflow-hidden">
+            <div
+              class="w-8 h-8 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 overflow-hidden">
               <img :src="getSenderAvatar(msg)" class="w-full h-full rounded-full object-cover" />
             </div>
           </template>
@@ -182,11 +167,7 @@
       <!-- 添加联系人弹窗 -->
       <Teleport to="body">
         <Transition name="modal">
-          <div 
-            v-if="showContactModal" 
-            class="contact-modal-overlay"
-            @click.self="closeModal"
-          >
+          <div v-if="showContactModal" class="contact-modal-overlay" @click.self="closeModal">
             <div class="contact-modal-content">
               <h3 class="text-lg font-semibold text-text-primary mb-4 text-center">添加联系人</h3>
               <div class="flex flex-col items-center mb-4">
@@ -197,27 +178,62 @@
               </div>
               <div class="mb-4">
                 <label class="block text-sm text-text-primary mb-2">设置用户名</label>
-                <input
-                  v-model="userNameInput"
-                  type="text"
+                <input v-model="userNameInput" type="text"
                   class="w-full bg-bg-second text-text-primary rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
-                  placeholder="输入用户名"
-                  @keyup.enter="addContact"
-                />
+                  placeholder="输入用户名" @keyup.enter="addContact" />
               </div>
               <div class="flex gap-3">
-                <button 
-                  @click="closeModal" 
-                  class="flex-1 py-2 rounded-lg bg-bg-second text-text-primary hover:bg-bg-third transition-colors"
-                >
+                <button @click="closeModal"
+                  class="flex-1 py-2 rounded-lg bg-bg-second text-text-primary hover:bg-bg-third transition-colors">
                   取消
                 </button>
-                <button 
-                  @click="addContact" 
-                  class="flex-1 py-2 rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors"
-                >
+                <button @click="addContact"
+                  class="flex-1 py-2 rounded-lg bg-primary text-white hover:bg-primary/80 transition-colors">
                   添加
                 </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+      <!-- 文件预览弹窗 -->
+      <Teleport to="body">
+        <Transition name="modal">
+          <div v-if="showPreview" class="fixed inset-0 bg-black/80 flex items-center justify-center z-[100000]"
+            @click.self="closePreview">
+            <div class="bg-bg-primary rounded-xl max-w-[90vw] max-h-[90vh] overflow-hidden">
+              <div class="flex items-center justify-between p-4 border-b border-border">
+                <span class="text-text-primary font-medium">{{ previewFileName }}</span>
+                <button @click="closePreview" class="p-2 hover:bg-bg-second rounded-lg">
+                  <IconFont name="guanbi" class="w-5 h-5 text-text-primary" />
+                </button>
+              </div>
+              <div class="p-4 max-h-[70vh] overflow-auto">
+                <!-- 图片预览 -->
+                <div v-if="previewType === 'image'" class="flex justify-center">
+                  <img :src="previewUrl" class="max-w-full max-h-[60vh] object-contain" />
+                </div>
+                <!-- 视频预览 -->
+                <div v-else-if="previewType === 'video'" class="flex justify-center">
+                  <video :src="previewUrl" controls class="max-w-full max-h-[60vh] object-contain" />
+                </div>
+                <!-- 音频预览 -->
+                <div v-else-if="previewType === 'audio'" class="w-full">
+                  <audio :src="previewUrl" controls class="w-full" />
+                </div>
+                <!-- 文本预览 -->
+                <div v-else-if="previewType === 'text'" class="w-full">
+                  <pre class="text-text-primary whitespace-pre-wrap break-all">{{ previewTextContent }}</pre>
+                </div>
+                <!-- 其他类型 -->
+                <div v-else class="flex flex-col items-center justify-center py-8">
+                  <IconFont name="wenjian" class="w-16 h-16 text-text-secondary mb-4" />
+                  <p class="text-text-secondary">无法预览此文件类型</p>
+                  <button @click="downloadFile(previewFileName, previewTransferId || undefined)"
+                    class="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/80 transition-colors">
+                    下载文件
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -231,20 +247,15 @@
           <IconFont name="a-biaoqing" class="w-6 h-6" />
         </button>
         <div class="flex-1 relative">
-          <textarea
-            v-model="content"
-            @keydown.enter.exact.prevent="send"
+          <textarea v-model="content" @keydown.enter.exact.prevent="send"
             class="w-full bg-bg-second text-text-primary rounded-full py-2 px-4 focus:outline-none resize-none"
-            placeholder="输入..."
-            rows="1"
-            @focus="handleInputFocus"
-            @blur="handleInputBlur"
-            @input="autoResize"
-            ref="inputRef"
-          ></textarea>
+            placeholder="输入..." rows="1" @focus="handleInputFocus" @blur="handleInputBlur" @input="autoResize"
+            ref="inputRef"></textarea>
         </div>
-        <button class="text-primary mx-3 mb-2">
-          <IconFont name="add" class="w-6 h-6" />
+        <input ref="fileInputRef" type="file" class="hidden" @change="handleFileSelect"
+          accept="image/*,video/*,audio/*,text/*,.pdf,.zip,.rar,.7z,.doc,.docx,.xls,.xlsx,.ppt,.pptx" />
+        <button class="text-primary mx-3 mb-2" @click="triggerFileSelect">
+          <IconFont name="jiahao" class="w-6 h-6" />
         </button>
         <button @click="send" class="text-primary mb-2">
           <IconFont name="yuyinshuru" class="w-6 h-6" />
@@ -264,6 +275,7 @@ import { useAppConfigStore } from '@/stores/appConfig';
 import { avatar } from '@/utils/tools';
 import { chatDB } from '@/utils/preprocessing';
 import type { User } from '@/utils/preprocessing';
+import { fileStorageDB } from '@/utils/fileStorageDB';
 
 const route = useRoute();
 const router = useRouter();
@@ -280,6 +292,162 @@ const showContactModal = ref(false);
 const selectedPeerId = ref('');
 const userNameInput = ref('');
 const inputRef = ref<HTMLTextAreaElement | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+// 文件预览相关状态
+const showPreview = ref(false);
+const previewUrl = ref('');
+const previewType = ref<'image' | 'video' | 'audio' | 'text' | 'other'>('other');
+const previewFileName = ref('');
+const previewTransferId = ref<number | null>(null);
+
+/**
+ * 根据文件扩展名获取 MIME 类型
+ */
+const getMimeType = (fileName: string): string => {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  const mimeTypes: Record<string, string> = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'bmp': 'image/bmp',
+    'svg': 'image/svg+xml',
+    'pdf': 'application/pdf',
+    'txt': 'text/plain',
+    'html': 'text/html',
+    'css': 'text/css',
+    'js': 'application/javascript',
+    'json': 'application/json',
+    'xml': 'application/xml',
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'mp4': 'video/mp4',
+    'mov': 'video/quicktime',
+    'avi': 'video/x-msvideo',
+    'webm': 'video/webm'
+  };
+  return mimeTypes[extension] || 'application/octet-stream';
+};
+
+/**
+ * 根据文件名确定预览类型
+ */
+const getPreviewType = (fileName: string): 'image' | 'video' | 'audio' | 'text' | 'other' => {
+  const mimeType = getMimeType(fileName);
+  if (mimeType.startsWith('image/')) return 'image';
+  if (mimeType.startsWith('video/')) return 'video';
+  if (mimeType.startsWith('audio/')) return 'audio';
+  if (mimeType.startsWith('text/')) return 'text';
+  return 'other';
+};
+
+// 文本预览内容
+const previewTextContent = ref('');
+
+/**
+ * 预览文件
+ */
+const previewFile = async (fileName: string, transferId?: number) => {
+  try {
+    if (!transferId) {
+      // 如果没有 transferId，尝试从 content 中提取
+      const match = fileName.match(/file:\/\/(\d+)/);
+      transferId = match ? parseInt(match[1]) : Date.now();
+    }
+
+    previewFileName.value = fileName;
+    previewTransferId.value = transferId;
+    previewType.value = getPreviewType(fileName);
+
+    // 获取二进制数据
+    const binaryData = await fileStorageDB.getAllChunks(transferId);
+    const mimeType = getMimeType(fileName);
+
+    // 根据文件类型处理预览
+    if (previewType.value === 'text') {
+      // 文本文件直接转换为字符串
+      previewTextContent.value = new TextDecoder().decode(binaryData);
+      previewUrl.value = '';
+    } else {
+      // 其他类型创建 blob URL
+      const blob = new Blob([binaryData], { type: mimeType });
+      previewUrl.value = URL.createObjectURL(blob);
+      previewTextContent.value = '';
+    }
+
+    showPreview.value = true;
+
+    console.log('File previewed:', fileName);
+  } catch (error) {
+    console.error('Preview failed:', error);
+    alert('预览失败: ' + (error instanceof Error ? error.message : String(error)));
+  }
+};
+
+/**
+ * 关闭预览
+ */
+const closePreview = () => {
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value);
+    previewUrl.value = '';
+  }
+  showPreview.value = false;
+  previewFileName.value = '';
+  previewTransferId.value = null;
+  previewType.value = 'other';
+};
+
+/**
+ * 下载文件
+ */
+const downloadFile = async (fileName: string, transferId?: number) => {
+  try {
+    if (!transferId) {
+      const match = fileName.match(/file:\/\/(\d+)/);
+      transferId = match ? parseInt(match[1]) : Date.now();
+    }
+
+    const mimeType = getMimeType(fileName);
+    const binaryData = await fileStorageDB.getAllChunks(transferId);
+
+    if ('showSaveFilePicker' in window) {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: fileName,
+        types: [{
+          description: 'File',
+          accept: { [mimeType]: ['.' + fileName.split('.').pop()] }
+        }]
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(binaryData);
+      await writable.close();
+      console.log('File saved:', fileName);
+      alert('文件已保存到指定位置');
+    } else {
+      // 传统下载方式
+      const blob = new Blob([binaryData], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      console.log('File downloaded:', fileName);
+    }
+  } catch (error) {
+    console.error('Download failed:', error);
+    alert('下载失败: ' + (error instanceof Error ? error.message : String(error)));
+  }
+};
 
 /**
  * 根据会话类型生成头像
@@ -315,17 +483,17 @@ const isMe = (msg: typeof messageList.value[0]) => {
 
 const getSenderAvatar = (msg: typeof messageList.value[0]) => {
   const isBroadcast = currentSession.value?.id === 'broadcast';
-  
+
   // 判断是否是自己发送的消息
   if (isMe(msg)) {
     return appConfig.avatarUrl || avatar('me');
   }
-  
+
   // 广播频道：使用发送者的 peerID 生成头像
   if (isBroadcast) {
     return avatar(msg.from);
   }
-  
+
   // 私聊：从用户数据中获取对方头像（暂时使用 peerID 生成）
   return avatar(msg.from);
 };
@@ -389,7 +557,43 @@ const handleInputFocus = () => {
   });
 };
 
-const handleInputBlur = () => {};
+const handleInputBlur = () => { };
+
+/**
+ * 触发文件选择对话框
+ */
+const triggerFileSelect = () => {
+  fileInputRef.value?.click();
+};
+
+/**
+ * 处理文件选择
+ */
+const handleFileSelect = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+
+  if (!file) return;
+
+  try {
+    // 获取文件数据
+    const arrayBuffer = await file.arrayBuffer();
+    const data = Array.from(new Uint8Array(arrayBuffer));
+
+    // 发送文件消息
+    await store.sendFileMessage(file.name, data, file.size);
+
+    // 清空文件输入
+    if (fileInputRef.value) {
+      fileInputRef.value.value = '';
+    }
+
+    console.log('File sent:', file.name);
+  } catch (error) {
+    console.error('Failed to send file:', error);
+    alert('发送文件失败: ' + (error instanceof Error ? error.message : String(error)));
+  }
+};
 
 /**
  * 自动调整输入框高度
@@ -417,10 +621,10 @@ const handleResize = () => {
  */
 const handleScroll = () => {
   if (!messageListRef.value) return;
-  
+
   const { scrollTop } = messageListRef.value;
   const hasMore = hasMoreMessages.value ?? false;
-  
+
   // 如果滚动到顶部且有更多消息，加载历史消息
   if (scrollTop < 50 && hasMore && !isLoading.value) {
     loadHistoryMessages();
@@ -432,10 +636,10 @@ const handleScroll = () => {
  */
 const loadHistoryMessages = async () => {
   if (isLoading.value || !hasMoreMessages.value) return;
-  
+
   isLoading.value = true;
   isLoadingHistory.value = true;
-  
+
   try {
     const sessionId = route.params.id as string;
     await store.loadHistoryMessages(sessionId);
@@ -493,8 +697,10 @@ const getUnreadCount = (): number => {
 watch(messageList, () => {
   nextTick(() => {
     // 加载历史消息时不自动滚动
-    if (isLoadingHistory.value) return;
-    
+    if (isLoadingHistory.value) {
+      return;
+    }
+
     // 如果没有未读消息，滚动到底部
     if (getUnreadCount() === 0) {
       scrollToBottom();
@@ -505,10 +711,11 @@ watch(messageList, () => {
 onMounted(async () => {
   const sessionId = route.params.id as string;
   const unreadCountBefore = getUnreadCount();
-  
+
   await store.initMessageList(sessionId);
-  await store.markAsRead(sessionId);
   
+  await store.markAsRead(sessionId);
+
   setTimeout(() => {
     show.value = true;
     nextTick(() => {
@@ -519,7 +726,7 @@ onMounted(async () => {
       // 有未读消息：保持在顶部（显示第一条未读消息）
     });
   }, 50);
-  
+
   window.addEventListener('resize', handleResize);
 });
 
@@ -555,20 +762,29 @@ const send = () => {
 .chat-enter-from {
   transform: translateX(100%);
 }
+
 .chat-enter-active {
   transition: transform 0.35s ease;
 }
+
 .chat-leave-to {
   transform: translateX(100%);
 }
+
 .chat-leave-active {
   transition: transform 0.35s ease;
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }

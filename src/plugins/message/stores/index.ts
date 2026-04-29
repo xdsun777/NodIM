@@ -1,7 +1,48 @@
 import { defineStore } from 'pinia';
 import { chatDB, type Chat as DbSession, type Message as DbMessage, generateId, getChatId } from '@/utils/preprocessing';
 import { useAppConfigStore } from '@/stores/appConfig';
-import { broadcastMessage, sendPrivate } from '@/p2p/index';
+import { broadcastMessage, sendPrivate, sendFileBinary } from '@/p2p/index';
+import { fileStorageDB } from '@/utils/fileStorageDB';
+
+/**
+ * 将 Uint8Array 转换为 Base64 字符串（分块处理避免调用栈溢出）
+ */
+function uint8ArrayToBase64(data: Uint8Array): string {
+  const chunkSize = 8192; // 每块处理 8KB
+  let result = '';
+  
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const chunk = data.subarray(i, Math.min(i + chunkSize, data.length));
+    result += btoa(String.fromCharCode(...chunk));
+  }
+  
+  return result;
+}
+
+/**
+ * 获取文件的 MIME 类型
+ */
+function getMimeType(fileName: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  const mimeTypes: Record<string, string> = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'svg': 'image/svg+xml',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'ogg': 'video/ogg',
+    'mp3': 'audio/mpeg',
+    'wav': 'audio/wav',
+    'ogg': 'audio/ogg',
+    'txt': 'text/plain',
+    'json': 'application/json',
+    'pdf': 'application/pdf',
+  };
+  return mimeTypes[extension] || 'application/octet-stream';
+}
 
 export interface MessageItem {
   id: string;
@@ -11,6 +52,7 @@ export interface MessageItem {
   type: 'text' | 'file' | 'image' | 'video' | 'audio' | 'system';
   fileName?: string;
   fileSize?: number;
+  transferId?: number;
   status: 'pending' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 }
 
@@ -142,8 +184,12 @@ export const useMessageStore = defineStore('message', {
             type: msg.type,
             fileName: msg.fileName,
             fileSize: msg.fileSize,
+            transferId: msg.transferId,
             status: msg.status,
           }));
+          
+          // 重新生成文件预览 URL（处理刷新页面后 Blob URL 失效的问题）
+          await this.regenerateFilePreviewUrls();
         }
 
         // 更新未读计数
@@ -152,6 +198,41 @@ export const useMessageStore = defineStore('message', {
 
       } catch (error) {
         console.error('Failed to load messages:', error);
+      }
+    },
+
+    /**
+     * 重新生成文件预览 URL（处理刷新页面后 Blob URL 失效的问题）
+     */
+    async regenerateFilePreviewUrls() {
+      console.log('[Store] Regenerating file preview URLs...');
+      
+      for (let i = 0; i < this.messageList.length; i++) {
+        const msg = this.messageList[i];
+        
+        // 只处理图片、视频、音频消息，且 transferId 存在，且 content 不是有效的 Blob URL
+        if ((msg.type === 'image' || msg.type === 'video' || msg.type === 'audio') && msg.transferId) {
+          if (msg.content.startsWith('blob:')) {
+            try {
+              // 从 fileStorageDB 获取文件数据
+              const binaryData = await fileStorageDB.getAllChunks(msg.transferId);
+              const mimeType = getMimeType(msg.fileName || '');
+              const blob = new Blob([binaryData], { type: mimeType });
+              const blobUrl = URL.createObjectURL(blob);
+              console.log("新的blob:",blobUrl);
+              
+              // 更新消息的 content 为新的 Blob URL
+              this.messageList[i] = {
+                ...msg,
+                content: blobUrl
+              };
+              
+              console.log('[Store] Regenerated URL for:', msg.fileName);
+            } catch (error) {
+              console.error('[Store] Failed to regenerate URL:', error);
+            }
+          }
+        }
       }
     },
 
@@ -179,6 +260,7 @@ export const useMessageStore = defineStore('message', {
           type: msg.type,
           fileName: msg.fileName,
           fileSize: msg.fileSize,
+          transferId: msg.transferId,
           status: msg.status,
         }));
 
@@ -256,6 +338,172 @@ export const useMessageStore = defineStore('message', {
         console.error('[Message] Failed to send message:', error);
         newMsg.status = 'failed';
       }
+    },
+
+    async sendFileMessage(fileName: string, data: number[], fileSize: number) {
+      if (!fileName || !data || data.length === 0 || !this.currentSessionId) {
+        console.log('[Message] sendFileMessage skipped - missing parameters');
+        return;
+      }
+
+      const appConfig = useAppConfigStore();
+      const myPeerId = appConfig.peerID;
+      const toPeerId = this.currentSessionId === 'broadcast' ? 'broadcast' : this.currentSessionId;
+
+      // 根据文件名确定消息类型
+      const extension = fileName.split('.').pop()?.toLowerCase() || '';
+      const mimeType = this.getMimeType(extension);
+      let messageType: MessageItem['type'] = 'file';
+      
+      if (mimeType.startsWith('image/')) {
+        messageType = 'image';
+      } else if (mimeType.startsWith('video/')) {
+        messageType = 'video';
+      } else if (mimeType.startsWith('audio/')) {
+        messageType = 'audio';
+      } else if (mimeType.startsWith('text/')) {
+        messageType = 'text';
+      }
+
+      console.log('[Message] Sending file:', { fileName, fileSize, messageType, currentSessionId: this.currentSessionId });
+
+      // 生成 transferId
+      const transferId = Date.now();
+      
+      // 创建预览 URL
+      let contentUrl = '';
+      
+      if (messageType === 'image' || messageType === 'video' || messageType === 'audio') {
+        const blob = new Blob([new Uint8Array(data)], { type: mimeType });
+        contentUrl = URL.createObjectURL(blob);
+      } else if (messageType === 'text') {
+        contentUrl = new TextDecoder().decode(new Uint8Array(data));
+      } else {
+        contentUrl = `file://${transferId}`;
+      }
+
+      const newMsg: MessageItem = {
+        id: generateId(),
+        content: contentUrl,
+        from: myPeerId,
+        timestamp: Date.now(),
+        type: messageType,
+        fileName,
+        fileSize,
+        transferId,
+        status: 'sending',
+      };
+
+      this.messageList.push(newMsg);
+
+      const dbMsg: DbMessage = {
+        id: newMsg.id,
+        chatId: this.currentSessionId,
+        from: myPeerId,
+        to: toPeerId,
+        type: messageType,
+        content: contentUrl,
+        fileName,
+        fileSize,
+        transferId,
+        status: 'sending',
+        timestamp: Date.now(),
+        isSelf: true,
+      };
+
+      try {
+        // 保存文件到 fileStorageDB（用于发送端预览和下载）
+        // 与接收端保持一致：使用 256KB 分块
+        const chunkSize = 256 * 1024;
+        const totalChunks = Math.ceil(fileSize / chunkSize);
+        
+        // 创建传输记录
+        await fileStorageDB.createTransfer(
+          toPeerId,
+          transferId,
+          fileName,
+          fileSize,
+          totalChunks
+        );
+        
+        // 分块保存文件数据（直接保存 Uint8Array，避免不必要的 Base64 编码）
+        const uint8Data = new Uint8Array(data);
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * chunkSize;
+          const end = Math.min(start + chunkSize, fileSize);
+          const chunk = uint8Data.subarray(start, end);
+          await fileStorageDB.saveChunkBinary(transferId, i, chunk);
+        }
+        
+        // 标记传输完成
+        await fileStorageDB.completeTransfer(toPeerId, transferId);
+        
+        console.log('[Message] File saved to storage');
+        
+        await chatDB.putMessage(dbMsg);
+        console.log('[Message] File message saved to database');
+
+        // 通过 P2P 发送文件（使用二进制分块传输）
+        if (this.currentSessionId !== 'broadcast') {
+          await sendFileBinary(toPeerId, fileName, data);
+        } else {
+          // 广播暂不支持文件传输
+          console.log('[Message] Broadcast file transfer not supported');
+        }
+
+        newMsg.status = 'sent';
+        await chatDB.updateMessageStatus(newMsg.id, 'sent');
+        console.log('[Message] File message status updated to sent');
+
+        this.updateSessionLastMsg(`[文件] ${fileName}`, newMsg.timestamp.toString());
+
+        setTimeout(async () => {
+          newMsg.status = 'delivered';
+          await chatDB.updateMessageStatus(newMsg.id, 'delivered');
+        }, 1000);
+      } catch (error) {
+        console.error('[Message] Failed to send file:', error);
+        newMsg.status = 'failed';
+      }
+    },
+
+    /**
+     * 根据文件扩展名获取 MIME 类型
+     */
+    getMimeType(extension: string): string {
+      const mimeTypes: Record<string, string> = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp',
+        'svg': 'image/svg+xml',
+        'pdf': 'application/pdf',
+        'txt': 'text/plain',
+        'html': 'text/html',
+        'css': 'text/css',
+        'js': 'application/javascript',
+        'json': 'application/json',
+        'xml': 'application/xml',
+        'mp3': 'audio/mpeg',
+        'wav': 'audio/wav',
+        'ogg': 'audio/ogg',
+        'mp4': 'video/mp4',
+        'mov': 'video/quicktime',
+        'avi': 'video/x-msvideo',
+        'webm': 'video/webm',
+        'zip': 'application/zip',
+        'rar': 'application/x-rar-compressed',
+        '7z': 'application/x-7z-compressed',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'xls': 'application/vnd.ms-excel',
+        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'ppt': 'application/vnd.ms-powerpoint',
+        'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      };
+      return mimeTypes[extension] || 'application/octet-stream';
     },
 
     async handleBroadcastMessage(from: string, message: string) {
@@ -341,13 +589,36 @@ export const useMessageStore = defineStore('message', {
         session = this.sessionList.find((item) => item.id === chatId);
       }
 
+      // 尝试解析消息内容，判断是否是文件消息
+      let messageType: MessageItem['type'] = 'text';
+      let messageContent = text;
+      let fileName: string | undefined;
+      let fileSize: number | undefined;
+      let transferId: number | undefined;
+
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.type && ['image', 'video', 'audio', 'textfile', 'file'].includes(parsed.type)) {
+          messageType = parsed.type === 'textfile' ? 'text' : parsed.type;
+          messageContent = parsed.url || parsed.content || `file://${parsed.transferId}`;
+          fileName = parsed.fileName;
+          fileSize = parsed.fileSize;
+          transferId = parsed.transferId;
+        }
+      } catch {
+        // 不是JSON格式，视为普通文本消息
+      }
+
       // 创建消息对象
       const newMsg: MessageItem = {
         id: generateId(),
-        content: text,
+        content: messageContent,
         from,
         timestamp: Date.now(),
-        type: 'text',
+        type: messageType,
+        fileName,
+        fileSize,
+        transferId,
         status: 'delivered',
       };
 
@@ -366,8 +637,11 @@ export const useMessageStore = defineStore('message', {
         chatId,
         from,
         to: myPeerId,
-        type: 'text',
-        content: text,
+        type: messageType,
+        content: messageContent,
+        fileName,
+        fileSize,
+        transferId,
         status: 'delivered',
         timestamp: Date.now(),
         isSelf: false,
@@ -376,14 +650,15 @@ export const useMessageStore = defineStore('message', {
       await chatDB.putMessage(dbMsg).catch(console.error);
 
       // 更新会话最后消息
+      const lastMsgPreview = fileName ? `[文件] ${fileName}` : (messageContent.length > 50 ? messageContent.slice(0, 50) + '...' : messageContent);
       if (session) {
-        session.lastMsg = text.length > 50 ? text.slice(0, 50) + '...' : text;
+        session.lastMsg = lastMsgPreview;
         session.time = this.formatTime(Date.now());
       }
 
       chatDB.getChat(chatId).then((chat) => {
         if (chat) {
-          chat.lastMessage = text;
+          chat.lastMessage = lastMsgPreview;
           chat.lastMessageTime = Date.now();
           chat.updatedAt = Date.now();
           chat.unreadCount = (chat.unreadCount || 0) + 1;

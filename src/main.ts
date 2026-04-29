@@ -25,7 +25,7 @@ import { useAppConfigStore } from '@/stores/appConfig';
 import '@/plugins/message';
 import '@/plugins/contact';
 import '@/plugins/mine';
-import '@/plugins/test';
+// import '@/plugins/test';
 import { useP2PListener } from '@/plugins/p2pListener';
 
 // 创建Vue实例

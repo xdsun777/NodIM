@@ -61,12 +61,12 @@ routerManager.setRouter(router);
 
 // 4. 预注册所有插件路由（解决刷新404问题）
 //  提前导入所有插件的路由配置，确保刷新时路由已存在
-import { testPlugin } from '@/plugins/test';
+// import { testPlugin } from '@/plugins/test';
 import { messagePlugin } from '@/plugins/message';
 import { contactPlugin } from '@/plugins/contact'
 import { minePlugin } from '@/plugins/mine'
 // 批量预注册插件路由
-const allPlugins = [messagePlugin, contactPlugin, minePlugin, testPlugin];
+const allPlugins = [messagePlugin, contactPlugin, minePlugin];
 
 // const allPlugins = [];
 allPlugins.forEach((plugin) => {

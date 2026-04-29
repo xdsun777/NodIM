@@ -44,7 +44,11 @@
           <template v-if="!isMe(msg)">
             <div
               class="w-8 h-8 rounded-full bg-bg-second flex items-center justify-center flex-shrink-0 overflow-hidden cursor-pointer"
-              @click="handleAvatarClick(msg)" @contextmenu.prevent="handleAvatarLongPress(msg)">
+              @click="handleAvatarClick(msg)" 
+              @contextmenu.prevent="handleAvatarLongPress(msg)"
+              @touchstart.prevent="startAvatarLongPress(msg)"
+              @touchend="endAvatarLongPress"
+              @touchcancel="endAvatarLongPress">
               <img :src="getSenderAvatar(msg)" class="w-full h-full rounded-full object-cover" />
             </div>
             <div class="max-w-xs">
@@ -84,6 +88,19 @@
                 </div>
                 <div class="absolute bottom-2 left-2 text-white text-xs">
                   <p>{{ msg.fileName }}</p>
+                  <p>{{ formatFileSize(msg.fileSize) }}</p>
+                </div>
+              </div>
+              <!-- 音频消息 -->
+              <div v-else-if="msg.type === 'audio'" class="bg-bg-primary p-3 rounded-lg">
+                <audio 
+                  :src="msg.content" 
+                  controls 
+                  class="w-full"
+                  preload="metadata"
+                />
+                <div class="mt-2 text-xs text-text-secondary">
+                  <p class="truncate">{{ msg.fileName }}</p>
                   <p>{{ formatFileSize(msg.fileSize) }}</p>
                 </div>
               </div>
@@ -135,6 +152,19 @@
                   <p>{{ formatFileSize(msg.fileSize) }}</p>
                 </div>
               </div>
+              <!-- 音频消息 -->
+              <div v-else-if="msg.type === 'audio'" class="bg-primary p-3 rounded-lg">
+                <audio 
+                  :src="msg.content" 
+                  controls 
+                  class="w-full"
+                  preload="metadata"
+                />
+                <div class="mt-2 text-xs text-white/70">
+                  <p class="truncate">{{ msg.fileName }}</p>
+                  <p>{{ formatFileSize(msg.fileSize) }}</p>
+                </div>
+              </div>
               <!-- 其他消息类型 -->
               <div v-else class="bg-primary text-white p-3 rounded-lg">
                 <span class="text-sm text-white/70">无法显示的消息类型</span>
@@ -179,7 +209,7 @@
               <div class="mb-4">
                 <label class="block text-sm text-text-primary mb-2">设置用户名</label>
                 <input v-model="userNameInput" type="text"
-                  class="w-full bg-bg-second text-text-primary rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  class="w-full bg-bg-primary text-text-primary rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="输入用户名" @keyup.enter="addContact" />
               </div>
               <div class="flex gap-3">
@@ -248,11 +278,11 @@
         </button>
         <div class="flex-1 relative">
           <textarea v-model="content" @keydown.enter.exact.prevent="send"
-            class="w-full bg-bg-second text-text-primary rounded-full py-2 px-4 focus:outline-none resize-none"
+            class="w-full bg-bg-primary-second text-text-primary rounded-full py-2 px-4 focus:outline-none resize-none"
             placeholder="输入..." rows="1" @focus="handleInputFocus" @blur="handleInputBlur" @input="autoResize"
             ref="inputRef"></textarea>
         </div>
-        <input ref="fileInputRef" type="file" class="hidden" @change="handleFileSelect"
+        <input ref="fileInputRef" type="file" class="hidden bg-bg-primary text-text-primary" @change="handleFileSelect"
           accept="image/*,video/*,audio/*,text/*,.pdf,.zip,.rar,.7z,.doc,.docx,.xls,.xlsx,.ppt,.pptx" />
         <button class="text-primary mx-3 mb-2" @click="triggerFileSelect">
           <IconFont name="jiahao" class="w-6 h-6" />
@@ -500,11 +530,39 @@ const getSenderAvatar = (msg: typeof messageList.value[0]) => {
 
 /**
  * 处理头像点击事件
+ * 广播消息中点击头像跳转到私聊，私聊中点击头像打开添加联系人弹窗
  */
-const handleAvatarClick = (msg: typeof messageList.value[0]) => {
-  selectedPeerId.value = msg.from;
-  userNameInput.value = msg.from.substring(0, 8); // 默认使用peerId的前8位作为用户名
-  showContactModal.value = true;
+const handleAvatarClick = async (msg: typeof messageList.value[0]) => {
+  // 如果正在长按，不执行点击
+  if (avatarLongPressTimer) {
+    endAvatarLongPress();
+    return;
+  }
+  
+  // 检查当前是否是广播会话
+  const sessionId = route.params.id as string;
+  if (sessionId === 'broadcast') {
+    // 广播消息：点击头像跳转到私聊
+    
+    // 检查是否已存在该会话
+    const existingSession = store.sessionList.find((item) => item.id === msg.from);
+    
+    if (!existingSession) {
+      // 会话不存在，先创建
+      await store.addOrUpdateSession(msg.from);
+    }
+    
+    // 跳转到私聊（使用对方的 peerId 作为会话 ID）
+    router.push({
+      name: 'global-chat',
+      params: { id: msg.from },
+    });
+  } else {
+    // 私聊消息：点击头像打开添加联系人弹窗
+    selectedPeerId.value = msg.from;
+    userNameInput.value = msg.from.substring(0, 8);
+    showContactModal.value = true;
+  }
 };
 
 /**
@@ -514,6 +572,34 @@ const handleAvatarLongPress = (msg: typeof messageList.value[0]) => {
   selectedPeerId.value = msg.from;
   userNameInput.value = msg.from.substring(0, 8);
   showContactModal.value = true;
+};
+
+// 触摸长按计时器
+let avatarLongPressTimer: ReturnType<typeof setTimeout> | null = null;
+let longPressMsg: typeof messageList.value[0] | null = null;
+const AVATAR_LONG_PRESS_DURATION = 500; // 长按500ms触发
+
+/**
+ * 开始触摸长按
+ */
+const startAvatarLongPress = (msg: typeof messageList.value[0]) => {
+  longPressMsg = msg;
+  avatarLongPressTimer = setTimeout(() => {
+    if (longPressMsg) {
+      handleAvatarLongPress(longPressMsg);
+    }
+  }, AVATAR_LONG_PRESS_DURATION);
+};
+
+/**
+ * 结束触摸长按
+ */
+const endAvatarLongPress = () => {
+  if (avatarLongPressTimer) {
+    clearTimeout(avatarLongPressTimer);
+    avatarLongPressTimer = null;
+  }
+  longPressMsg = null;
 };
 
 /**
@@ -708,6 +794,25 @@ watch(messageList, () => {
   });
 }, { deep: true });
 
+/**
+ * 监听路由参数变化，切换会话
+ */
+watch(() => route.params.id, async (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    // 路由参数变化，重新初始化消息列表
+    const unreadCountBefore = getUnreadCount();
+    
+    await store.initMessageList(newId);
+    await store.markAsRead(newId);
+    
+    nextTick(() => {
+      if (unreadCountBefore === 0) {
+        scrollToBottom();
+      }
+    });
+  }
+});
+
 onMounted(async () => {
   const sessionId = route.params.id as string;
   const unreadCountBefore = getUnreadCount();
@@ -736,7 +841,7 @@ onUnmounted(() => {
 
 const back = () => {
   show.value = false;
-  setTimeout(() => router.back(), 350);
+  setTimeout(() => router.push('/message'), 350);
 };
 
 const send = () => {

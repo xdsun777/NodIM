@@ -5,8 +5,8 @@ import { pluginManager } from '@/core/plugin';
 import { routerManager } from '@/core/router';
 import { eventBus } from '@/core/event';
 import { contactRouter } from './router';
-import { markRaw } from 'vue'
-import SearchMobile from '@/components/common/Search/SearchMobile.vue'
+// import { markRaw } from 'vue'
+// import SearchMobile from '@/components/common/Search/SearchMobile.vue'
 // 插件核心定义
 export const contactPlugin: AppPlugin = {
   meta: {
@@ -18,7 +18,7 @@ export const contactPlugin: AppPlugin = {
       leftIcon: 'logo',
       title: '联系人',
       rightIcon: '',
-      search:markRaw(SearchMobile)
+      search:null
     }
   },
   router: contactRouter,
@@ -38,13 +38,8 @@ export const contactPlugin: AppPlugin = {
             // 可在此处实现消息推送逻辑
           },
         );
-
-        // 3. 全局注册插件通用组件（可选）
-        // app.component('MessageBubble', () => import('./components/MessageBubble.vue'));
-        // app.component('MessageInput', () => import('./components/MessageInput.vue'));
-
       } catch (error) {
-        console.error('❌ 消息插件安装失败：', error);
+        console.error('联系人插件安装失败：', error);
         throw error; // 抛出错误，让插件管理器感知
       }
     },
@@ -53,12 +48,7 @@ export const contactPlugin: AppPlugin = {
       eventBus.emit('contact:activate');
 
       // 激活时初始化会话列表
-      import('./stores/contact').then(({ useMessageStore }) => {
-        const messageStore = useMessageStore();
-        if (messageStore.sessionList.length === 0) {
-          messageStore.initSessionList();
-        }
-      });
+      
     },
     // 插件失活时执行
     deactivate() {

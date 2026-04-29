@@ -64,7 +64,7 @@
 
             <!-- 描述文字 -->
             <p class="text-text-second text-sm text-center mb-2">扫码添加好友</p>
-            <p class="text-text-second text-xs text-center">{{ appConfigStore.peerID || '未设置 PeerID' }}</p>
+            <!-- <p class="text-text-second text-xs text-center">{{ appConfigStore.peerID || '未设置 PeerID' }}</p> -->
           </div>
 
           <!-- 底部操作 -->

@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import type { MessageItem } from '../stores/contact';
+import type { MessageItem } from '../stores';
 
 // 组件 Props
 interface Props {

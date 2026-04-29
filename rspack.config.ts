@@ -107,7 +107,7 @@ export default defineConfig({
     },
     // 可选：开启热更新，提升开发体验
     hot: true,
-    open: true,
+    open: false,
   },
   experiments: {
     css: true,

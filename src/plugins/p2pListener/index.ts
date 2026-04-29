@@ -133,16 +133,16 @@ export function useP2PListener() {
 
       let peerId: string;
 
-      if (appConfig.identityKey) {
+      if (appConfig.identityKey!='' && appConfig.peerID!='' && appConfig.identityKey!=null) {
         console.log('使用已有的身份密钥启动 P2P 网络');
         peerId = await startWithIdentity(appConfig.identityKey);
         console.log(`P2P started with existing identity: ${peerId}`);
       } else {
         console.log('生成新的身份密钥对...');
-        const [keyBase64, newPeerId] = await generateIdentity();
+        const [newPeerId,keyBase64] = await generateIdentity();
         
-        appConfig.identityKey = keyBase64;
         appConfig.peerID = newPeerId;
+        appConfig.identityKey = keyBase64;
         
         peerId = newPeerId;
         console.log(`✓ 生成新的身份密钥对成功: ${peerId}`);

@@ -362,7 +362,6 @@ export const useAppConfigStore = defineStore('appConfig', () => {
       'identityKey',
       'platform',
       'version',
-      'auth',
       'autoLogin',
       'lastAuthTime',
       'lastRoute',

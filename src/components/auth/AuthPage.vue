@@ -20,44 +20,67 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { authApp } from '@/components/auth/index.ts'
 import { useAppConfigStore } from '@/stores/appConfig'
+import { authenticate } from '@tauri-apps/plugin-biometric';
 
 const appConfigStore = useAppConfigStore()
 const router = useRouter();
 
 
-onMounted(() => {
-  appConfigStore.setTheme(appConfigStore.theme)
+// onMounted(async() => {
+//   appConfigStore.setTheme(appConfigStore.theme)
+//   if (appConfigStore.lastRoute == '/' || appConfigStore.lastRoute == '/auth') {
+//     appConfigStore.setLastRoute('/message')
+//   }
+//   console.log("当前路由：" + appConfigStore.lastRoute);
+
+//   if (!appConfigStore.isMobile) {
+//     try {
+//       console.log("解锁");
+//       await authenticate('应用已锁', options);
+//       appConfigStore.auth = true
+      
+//       router.push(appConfigStore.lastRoute)
+//     } catch (error) {
+//       console.error('生物识别验证失败:', error);
+//     }
+//   } else {
+//     appConfigStore.auth = true
+//     router.push(appConfigStore.lastRoute)
+//   }
+
+// })
 
 
-  if (appConfigStore.lastRoute == '/') {
-    appConfigStore.setLastRoute('/message')
-  }
-  handleBiometricUnlock()
-})
-
-const handleBiometricUnlock = async () => {
-  const isMobile = appConfigStore.isMobile;
-
-  if (isMobile) {
-    console.log("移动端");
-    console.log("当前路由：" + appConfigStore.lastRoute);
-    authApp().then(() => {
-      appConfigStore.auth = true;
-      router.push(appConfigStore.lastRoute);
-    }).catch(() => {
-      console.log('解锁失败');
-    });
-  }
-  else {
-    appConfigStore.auth = true;
-    router.push(appConfigStore.lastRoute);
-    console.log("PC端");
-  }
 
 
+const options = {
+  allowDeviceCredential: true,
+  // cancelTitle: "Feature won't work if Canceled",
+
+  // 仅 iOS 平台的功能
+  // fallbackTitle: 'Sorry, authentication failed',
+
+  // 仅 Android 平台的功能
+  title: 'NodIM 解锁',
+  subtitle: '请使用生物识别解锁 NodIM',
+  confirmationRequired: true,
 };
 
+const handleBiometricUnlock = async () => {
+  console.log("尝试使用生物识别解锁 NodIM");
+  
+  try {
+    await authenticate('应用已锁', options);
+    appConfigStore.auth = true
+    router.push(appConfigStore.lastRoute)
+  } catch (error) {
+    console.error('生物识别验证失败:', error);
+  }
+};
+
+onMounted(async () => {
+  handleBiometricUnlock()
+})
 
 </script>

@@ -29,16 +29,26 @@ const route = useRoute();
 const appConfigStore = useAppConfigStore()
 
 onMounted(async () => {
-
-  if (route.path == '/') {
-    router.push(appConfigStore.activePlugin);
-  }
-
+  console.log("开始auth路由");
   if (!appConfigStore.auth) {
+    console.log("开始auth路由");
+    
     router.push({
       name: 'global-auth',
     });
   }
+
+  if (route.path == '/') {
+    router.push(appConfigStore.lastRoute);
+  }
+
+  // if (!appConfigStore.auth) {
+  //   console.log("开始auth路由");
+    
+  //   router.push({
+  //     name: 'global-auth',
+  //   });
+  // }
 });
 
 

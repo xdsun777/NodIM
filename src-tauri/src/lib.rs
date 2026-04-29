@@ -37,15 +37,12 @@ impl Default for P2pState {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-        tauri::Builder::default()
+    tauri::Builder::default()
+        .plugin(tauri_plugin_biometric::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_biometric::init())
         .plugin(tauri_plugin_barcode_scanner::init())
-        .setup(|app| {
-            Ok(())
-        })
         .manage(P2pState::new())
         .invoke_handler(tauri::generate_handler![
             commands::generate_identity,
